@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>同福客栈 · 武林外传经营小游戏</title>
+<style>
+html,body{margin:0;padding:0;height:100%;background:#160d06;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;font-family:"KaiTi","STKaiti","楷体","Microsoft YaHei",serif}
+#cv{background:#2b1a0e;border-radius:10px;box-shadow:0 0 80px rgba(0,0,0,.9);touch-action:none;cursor:default}
+</style>
+</head>
+<body>
+<canvas id="cv" width="960" height="680"></canvas>
+<script>
+'use strict';
+/* ============ 基础工具 ============ */
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const W=960,H=680,TAU=Math.PI*2;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rand(a,b+1));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const dist=(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const F_KAI='"KaiTi","STKaiti","楷体","Microsoft YaHei",serif';
+const F_EMO='"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji","Microsoft YaHei",sans-serif';
+let T=0;
+function fit(){const a=W/H;let w=innerWidth-14,h=innerHeight-14;if(w/h>a)w=h*a;else h=w/a;cv.style.width=w+'px';cv.style.height=h+'px'}
+addEventListener('resize',fit);fit();
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function line(a,b,c,d){ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke()}
+function ell(x,y,rx,ry,fill){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,TAU);if(fill){ctx.fillStyle=fill;ctx.fill()}}
+function txt(s,x,y,size,color,align,font,bold){ctx.font=(bold?'bold ':'')+size+'px '+(font||F_KAI);ctx.fillStyle=color||'#fff';ctx.textAlign=align||'center';ctx.textBaseline='middle';ctx.fillText(s,x,y)}
+function emo(s,x,y,size){txt(s,x,y,size,'#fff','center',F_EMO)}
+function star(x,y,r,fill){ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rd=i%2?r*.45:r;ctx[i?'lineTo':'moveTo'](x+Math.cos(a)*rd,y+Math.sin(a)*rd)}ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
+function heartP(x,y,s,fill){ctx.beginPath();ctx.moveTo(x,y+s*.32);ctx.bezierCurveTo(x-s*1.1,y-s*.6,x-s*.45,y-s*1.05,x,y-s*.34);ctx.bezierCurveTo(x+s*.45,y-s*1.05,x+s*1.1,y-s*.6,x,y+s*.32);ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
+function drawHeart5(x,y,pat){ // 5颗耐心红心
+  const n=Math.ceil(pat*5-0.001);
+  const col=pat>.6?'#7ac74f':pat>.3?'#f2b134':'#e04f39';
+  for(let i=0;i<5;i++){const hx=x-30+i*15;heartP(hx,y,7,i<n?col:'#4a3a2c')}
+}
+/* ============ 音效(WebAudio合成) ============ */
+let AC=null,muted=localStorage.getItem('tfkz_mute')==='1';
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+function tone(f,d,type,v,dl,slide){const a=ac();if(!a||muted)return;type=type||'sine';v=v==null?.18:v;dl=dl||0;
+  try{const t=a.currentTime+dl,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+  if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.05)}catch(e){}}
+const sfx={
+  click:()=>tone(700,.06,'triangle',.1),
+  order:()=>{tone(620,.09,'triangle',.14);tone(830,.12,'triangle',.14,.09)},
+  ready:()=>{tone(880,.08,'sine',.14);tone(1175,.15,'sine',.14,.08)},
+  coin:()=>{tone(988,.07,'square',.07);tone(1319,.09,'square',.07,.07);tone(1568,.13,'square',.05,.14)},
+  serve:()=>{tone(520,.1,'sine',.13);tone(780,.15,'sine',.13,.08)},
+  eat:()=>{tone(300,.08,'sine',.11);tone(260,.08,'sine',.11,.12)},
+  angry:()=>{tone(340,.32,'sawtooth',.11,0,-220)},
+  gong:()=>{tone(140,1.3,'sine',.28,0,-45);tone(196,1,'triangle',.1,.02)},
+  freeze:()=>{tone(1250,.32,'sine',.11,0,-750);tone(520,.28,'triangle',.1,.05,320)},
+  rally:()=>{tone(523,.1,'triangle',.13);tone(659,.1,'triangle',.13,.08);tone(784,.12,'triangle',.13,.16);tone(1047,.22,'triangle',.13,.24)},
+  door:()=>tone(230,.12,'triangle',.09),
+};
+let ambT=1,mIdx=0;
+const MELODY=[392,440,523,587,523,440,392,330,392,440,523,659,587,523,440,392,440,523,440,392,330,392,440,330];
+function ambient(dt){ambT-=dt;if(ambT<=0){ambT=1.35;
+  const f=MELODY[mIdx%MELODY.length];mIdx++;
+  tone(f,1.9,'sine',.026);tone(f*2,1.4,'sine',.009,.05);
+  if(mIdx%4===1)tone(f/2,3.2,'sine',.02);
+}}
+/* ============ 数据 ============ */
+const DISHES={
+  baiZhou:{name:'白粥',emoji:'🍚',price:3,time:3},
+  shaoJiu:{name:'烧刀子',emoji:'🥃',price:4,time:2.5},
+  tangHuLu:{name:'糖葫芦',emoji:'🍒',price:4,time:3},
+  suanMei:{name:'酸梅汤',emoji:'🍵',price:4,time:2.5},
+  qingCai:{name:'醋溜白菜',emoji:'🥬',price:5,time:4.5},
+  guiHuaGao:{name:'桂花糕',emoji:'🍡',price:6,time:4},
+  shaoJi:{name:'叫花鸡',emoji:'🍗',price:8,time:7},
+  nuErHong:{name:'女儿红',emoji:'🍶',price:12,time:6},
+  zhuTi:{name:'酱猪蹄',emoji:'🍖',price:10,time:9},
+  foTiao:{name:'佛跳墙',emoji:'🍲',price:15,time:12},
+  // ===== 研发新菜(李大嘴研制, 每道都有正负两面) =====
+  r_cray:{name:'麻辣小龙虾',emoji:'🦐',price:14,time:5,fx:{eatMul:1.6},desc:'高价大卖, 但客人吃得起劲占桌久'},
+  r_left:{name:'隔夜剩菜',emoji:'🥘',price:2,time:1.5,fx:{tipMul:.5,patMul:1.25},desc:'便宜秒做, 但小费减半、耐心掉得快'},
+  r_royal:{name:'满汉全席',emoji:'🍱',price:30,time:14,fx:{patMul:1.3},desc:'天价30两, 但费工且客人等得心焦'},
+  r_basi:{name:'拔丝地瓜',emoji:'🍠',price:7,time:3.5,fx:{tipMul:1.3},desc:'便宜快手, 客人吃完心头甜, 小费+30%'},
+  r_qie:{name:'醋溜茄子',emoji:'🍆',price:6,time:4,fx:{eatMul:.6},desc:'家常爽口, 客人吃得快腾桌快'},
+  r_soup:{name:'人参公鸡汤',emoji:'🫕',price:18,time:10,fx:{patMul:.75},desc:'大补! 点它的客人耐心+25%'},
+  r_snake:{name:'叫花蛇羹',emoji:'🐍',price:12,time:6,fx:{tipMul:1.5,patMul:1.15},desc:'猎奇美味小费+50%, 但等菜容易毛'},
+  r_dark:{name:'黑暗料理',emoji:'🫥',price:5,time:2,fx:{tipMul:.3,patMul:1.4},desc:'大嘴的失败之作, 便宜但遭罪'},
+};
+const NEW_DISH_KEYS=['r_cray','r_left','r_royal','r_basi','r_qie','r_soup','r_snake','r_dark'];
+const CTYPES={
+  beggar:{name:'丐兄',robe:'#8d7b57',skin:'#e8c39a',hat:'none',hair:'#4a3b28',pat:1.6,pay:1,spd:95,menu:[['baiZhou',3],['qingCai',2],['tangHuLu',1]],dishes:1,line:'多谢掌柜的~'},
+  biaoshi:{name:'镖师',robe:'#5d7291',skin:'#e8c39a',hat:'douli',hair:'#2e2a26',pat:1.15,pay:1.2,spd:115,menu:[['shaoJiu',3],['nuErHong',1],['shaoJi',2],['qingCai',1]],dishes:1,line:'这条街就服这家!'},
+  butou:{name:'燕小六',robe:'#4b5566',skin:'#e8c39a',hat:'guanmao',hair:'#1f1c18',pat:.85,pay:1.5,spd:120,menu:[['zhuTi',2],['shaoJi',2],['shaoJiu',1]],dishes:1,line:'我看好你哟!'},
+  diaochan:{name:'赛貂蝉',robe:'#d96a9c',skin:'#f5d3b3',hat:'flower',hair:'#3a2c22',pat:.65,pay:1.6,spd:135,menu:[['tangHuLu',3],['qingCai',2],['guiHuaGao',1],['baiZhou',1]],dishes:1,line:'还是这里雅致~'},
+  qian:{name:'钱夫人',robe:'#8e6bb5',skin:'#f5d3b3',hat:'pearl',hair:'#181512',pat:.9,pay:2,spd:110,menu:[['foTiao',2],['zhuTi',2],['shaoJi',2]],dishes:2,line:'钱不是问题!'},
+  pinggu:{name:'平谷一点红',robe:'#33333d',skin:'#e6c9c9',hat:'scarf',hair:'#111111',pat:.7,pay:2.5,spd:125,menu:[['shaoJi',2],['zhuTi',2],['foTiao',1]],dishes:2,line:'……(杀气)'},
+  xiaobei:{name:'莫小贝',robe:'#d4a843',skin:'#f5d3b3',hat:'bun2',hair:'#3a2c22',pat:1.35,pay:1.1,spd:150,menu:[['tangHuLu',5],['guiHuaGao',2],['suanMei',2]],dishes:1,line:'糖葫芦我要吃个够!'},
+  xiucai:{name:'吕秀才',robe:'#7a8a6a',skin:'#e8c39a',hat:'fajin',hair:'#2a2018',pat:1.8,pay:1.4,spd:100,menu:[['baiZhou',2],['suanMei',2],['guiHuaGao',2]],dishes:1,line:'知识就是力量!'},
+  zhixian:{name:'娄知县',robe:'#5a4a7a',skin:'#e8c39a',hat:'wusha',hair:'#1f1c18',pat:.8,pay:3,spd:105,menu:[['foTiao',3],['nuErHong',3]],dishes:2,line:'本官今日请客!'},
+};
+const LEVELS=[
+  {time:90,target:30,tables:3,stoves:2,spawn:[8,12],pool:{beggar:3,biaoshi:2},story:'客栈开张头一天, 街坊邻居都来捧场。\n额滴神呀, 可千万别搞砸了……'},
+  {time:120,target:50,tables:4,stoves:2,spawn:[7,10],pool:{beggar:2,biaoshi:3,butou:2},story:'六扇门的燕小六带着刀来吃饭, 怪吓人的……\n刀就先押在柜上吧。'},
+  {time:120,target:75,tables:6,stoves:3,spawn:[6.5,9.5],pool:{beggar:1,biaoshi:3,butou:2,diaochan:2,xiaobei:2,xiucai:1.5},story:'怡红楼的赛貂蝉也来光顾啦,\n衡山派的莫小贝还带着吕秀才来蹭饭!'},
+  {time:150,target:110,tables:8,stoves:3,spawn:[5.5,8],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1.5,xiucai:1.5,qian:1.5},story:'钱夫人揣着私房钱来啦!\n听说这回是来消费的, 不是来砸场子的。'},
+  {time:150,target:150,tables:10,stoves:3,spawn:[5,7],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,zhixian:1},story:'小郭说她三分钟就能排山倒海,\n娄知县大人也微服私访来吃饭了!'},
+  {time:180,target:210,tables:12,stoves:4,spawn:[4.5,6.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1.2},story:'江湖第一杀手平谷一点红光临小店!\n伺候好了, 咱同福客栈就名扬江湖了!'},
+  {time:150,target:250,tables:12,stoves:4,spawn:[4.5,6.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1.5},story:'怡红楼放话要跟咱们斗菜,\n先赢下这波口碑再说!'},
+  {time:150,target:280,tables:14,stoves:4,spawn:[4.3,6.2],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1.5},story:'丐帮在咱们店开长老大会,\n小米说: 管饭, 就是自己人!'},
+  {time:165,target:320,tables:14,stoves:4,spawn:[4.2,6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.2,zhixian:1.5},story:'端午节全镇划龙舟,\n看完龙舟的客人都涌进店来啦!'},
+  {time:165,target:360,tables:16,stoves:4,spawn:[4.1,6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.2,zhixian:1.5},story:'比武招亲摆到了店门口,\n各路英雄豪杰挤破了门槛!'},
+  {time:180,target:400,tables:16,stoves:5,spawn:[4,5.8],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.2,zhixian:1.5},story:'钱庄掌柜要给咱们放贷扩店,\n先挣出个首付看看实力!'},
+  {time:180,target:450,tables:18,stoves:5,spawn:[3.9,5.7],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.5},story:'六扇门来七侠镇巡查,\n捕头们下差都来店里聚餐!'},
+  {time:195,target:500,tables:18,stoves:5,spawn:[3.9,5.6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.5},story:'中秋将至, 月饼订单爆了,\n赏月的客人也络绎不绝!'},
+  {time:195,target:550,tables:18,stoves:5,spawn:[3.8,5.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.8},story:'老白的盗圣身份差点暴露,\n江湖朋友都来捧场压惊……'},
+  {time:210,target:610,tables:20,stoves:5,spawn:[3.3,4.6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.8},story:'小贝当上衡山掌门,\n五岳剑盟的朋友全来道贺!'},
+  {time:210,target:670,tables:20,stoves:5,spawn:[3.1,4.4],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.8,zhixian:1.8},story:'同福客栈分号开到十八里铺,\n总店生意反而更火了!'},
+  {time:225,target:730,tables:20,stoves:5,spawn:[2.9,4.2],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.8,zhixian:2},story:'佟老爷子从汉中赶来,\n要亲眼看看女儿的产业!'},
+  {time:225,target:800,tables:20,stoves:5,spawn:[2.7,4.0],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.8,zhixian:2},story:'郭巨侠微服私访,\n点名要尝女婿店里的佛跳墙!'},
+  {time:240,target:870,tables:20,stoves:5,spawn:[2.5,3.7],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:2,zhixian:2},story:'武林大会前夜,\n各大门派都在咱们店接风洗尘!'},
+  {time:240,target:950,tables:20,stoves:5,spawn:[2.3,3.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:2,zhixian:2},story:'第二十日, 武林大会开幕!\n让全江湖看看同福客栈的排场!'},
+  {time:Infinity,target:0,tables:20,stoves:5,spawn:[2.6,4.2],endless:true,pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1},story:'客人络绎不绝, 越到后面越多!\n生气离店满8位就打烊, 看你能挣多少!'},
+];
+const SHOP=[
+  {key:'knife',name:'新菜刀',desc:'做菜速度+15%/级',max:3,cost:[60,150,400],emoji:'🔪'},
+  {key:'shoes',name:'绣花鞋',desc:'移动速度+12%/级',max:3,cost:[60,150,400],emoji:'👡'},
+  {key:'deco',name:'重新装修',desc:'客人耐心+15%/级',max:3,cost:[80,200,500],emoji:'🏮'},
+  {key:'sign',name:'金字招牌',desc:'小费+25%/级',max:3,cost:[80,200,500],emoji:'✨'},
+  {key:'bai',name:'雇佣白展堂',desc:'自动跑堂·双手2盘+点穴手',max:1,cost:[120],emoji:'🖐️'},
+  {key:'guo',name:'雇佣郭芙蓉',desc:'自动跑堂·单盘·便宜',max:1,cost:[150],emoji:'💪'},
+  {key:'wushuang',name:'雇佣祝无双',desc:'自动跑堂·迎宾优先',max:1,cost:[130],emoji:'🌸'},
+  {key:'xiaobei',name:'雇佣莫小贝',desc:'有空桌客人直接入座+跑堂',max:1,cost:[220],emoji:'🧒'},
+  {key:'xiucai',name:'雇佣吕秀才',desc:'跑堂·慢·全店小费+10%',max:1,cost:[260],emoji:'📖'},
+  {key:'xiaomi',name:'雇佣小米',desc:'自动上街拉客·专职揽客',max:1,cost:[200],emoji:'🥣'},
+  {key:'xing',name:'雇佣邢捕头',desc:'自动跑堂·稳重·单盘',max:1,cost:[280],emoji:'🎖️'},
+  {key:'san',name:'雇佣白三娘',desc:'自动跑堂·快腿·单盘',max:1,cost:[260],emoji:'🧣'},
+  {key:'box',name:'双层食盒',desc:'所有跑堂多端1盘(上限3)',max:1,cost:[150],emoji:'🍱'},
+  {key:'menu',name:'菜单更新',desc:'所有菜价+10%/级',max:3,cost:[120,300,700],emoji:'📜'},
+  {key:'stove',name:'灶台扩建',desc:'之后每天灶台+1(最多6口)',max:1,cost:[250],emoji:'🔥'},
+  {key:'apprentice',name:'后厨学徒',desc:'李大嘴收徒·再+1灶台',max:1,cost:[300],emoji:'👨‍🍳'},
+  {key:'btrain',name:'葵花轻功',desc:'老白速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🌙'},
+  {key:'gtrain',name:'排山倒海特训',desc:'小郭速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🌪️'},
+  {key:'wtrain',name:'温柔一刀',desc:'无双速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🌸'},
+  {key:'xtrain',name:'衡山腿法',desc:'小贝速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'⚡'},
+  {key:'ctrain',name:'之乎者也',desc:'秀才速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'📖'},
+  {key:'mtrain',name:'丐帮轻功',desc:'小米速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🥣'},
+  {key:'etrain',name:'铁面缉拿',desc:'邢捕头速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🎖️'},
+  {key:'strain',name:'盗圣身法',desc:'三娘速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🧣'},
+  {key:'wage',name:'薪酬激励',desc:'全员(含掌柜)速度+8%/级',max:3,cost:[400,900,1800],emoji:'💰'},
+];
+const ACH=[
+  {key:'first',name:'开张大利',desc:'完成第一天',emoji:'🎉'},
+  {key:'rich',name:'日进斗金',desc:'单日收入超过150两',emoji:'💰'},
+  {key:'combo5',name:'行云流水',desc:'单日连击达到x5',emoji:'🔥'},
+  {key:'noangry',name:'宾至如归',desc:'一天内没有客人生气',emoji:'😇'},
+  {key:'team',name:'掌柜天团',desc:'雇齐五位跑堂: 老白小郭无双小贝秀才',emoji:'🤝'},
+  {key:'pass6',name:'名扬七侠镇',desc:'闯过前六天',emoji:'🏆'},
+  {key:'endless200',name:'生生不息',desc:'无尽模式挣到200两',emoji:'♾️'},
+  {key:'thief',name:'手疾眼快',desc:'抓住一个偷钱的小偷',emoji:'🦹'},
+  {key:'dish50',name:'老饕如云',desc:'累计服务50份菜',emoji:'🍜'},
+  {key:'vip',name:'伺候贵人',desc:'让娄知县满意离店',emoji:'👑'},
+  {key:'lure10',name:'拉客小能手',desc:'在街上招揽10位客人',emoji:'📣'},
+  {key:'pass20',name:'二十日传奇',desc:'通关全部二十天',emoji:'🐲'},
+  {key:'gold',name:'手气爆棚',desc:'十八里铺淘金挖到大金矿',emoji:'⛏️'},
+];
+const TABLE_POS=[[425,316],[650,316],[425,420],[650,420],[200,316],[875,316],[425,222],[650,222],[425,516],[650,516],[200,420],[875,420],[200,222],[875,222],[200,516],[875,516],[425,598],[650,598],[200,598],[875,598],[150,316],[910,316],[454,368],[606,368],[150,420],[910,420],[150,222],[910,222],[150,504]];
+const DOOR={x:40,y:560};
+function qpos(i){return i<6?{x:86,y:550-i*54}:{x:152,y:552-(i-6)*50}}
+function counterPos(i){return{x:498+i*62,y:140}}
+/* ============ 全局状态 ============ */
+let state='title',paused=false,mouse={x:-1,y:-1},hover=null,frameBtns=[];
+let speedMul=1;
+let G=null,RUN=null,bank=0,upg=null,best=+(localStorage.getItem('tfkz_best')||0);
+let nextBuffs={flow:0,price:0,pat:0,tip:0},townOpts=null,nextBanquet=false;
+const TOWN_EVENTS=[
+  {key:'flow',name:'衙门募捐',desc:'明日客流 +15%',cost:80,emoji:'🏮'},
+  {key:'price',name:'怡红楼斗菜',desc:'明日菜价 +15%',cost:100,emoji:'🍶'},
+  {key:'pat',name:'丐帮喜宴',desc:'明日客人耐心 +20%',cost:60,emoji:'🥣'},
+  {key:'tip',name:'镖局扬名',desc:'明日小费 +15%',cost:100,emoji:'🛡️'},
+  {key:'rush',name:'庙会锣鼓',desc:'明日开场60秒客流x2',cost:80,emoji:'🥁'},
+];
+function qCap(){return clamp(3+Math.floor(G.tables.length/3),3,12)}
+function resetRun(){upg={knife:0,shoes:0,deco:0,sign:0,bai:0,guo:0,wushuang:0,xiaobei:0,xiucai:0,xiaomi:0,box:0,menu:0,gtrain:0,btrain:0,wtrain:0,xtrain:0,ctrain:0,mtrain:0,etrain:0,strain:0,wage:0,xing:0,san:0,stove:0,hall:0,apprentice:0};bank=0;nextBuffs={flow:0,price:0,pat:0,tip:0};townOpts=null;nextBanquet=false}
+function newGame(){resetRun();RUN={earn:0,angry:0,researched:[]};speedMul=1;startLevel(1)}
+function PSPEED(){return 250*(1+.12*(upg.shoes||0))*(1+.08*(upg.wage||0))}
+function carryCap(){return Math.min(2+(upg.box||0),3)}
+function priceOf(k){return DISHES[k].price*(1+.1*(upg.menu||0))*(G&&G.day&&G.day.price?1.15:1)}
+function mkRunner(key){
+  const guo=key==='guo',ws=key==='wushuang',xb=key==='rxb',xc=key==='rxc',xm=key==='xiaomi',ex=key==='rxing',sn=key==='rsan';
+  const hx=guo?312:ws?537:xb?762:xc?930:xm?200:ex?454:sn?650:140,hy=guo?269:ws?269:xb?363:xc?545:xm?650:ex?598:sn?598:555;
+  const base=guo?205*(1+.2*(upg.gtrain||0)):ws?265*(1+.2*(upg.wtrain||0)):xb?285*(1+.2*(upg.xtrain||0)):xc?135*(1+.2*(upg.ctrain||0)):xm?190*(1+.2*(upg.mtrain||0)):ex?240*(1+.2*(upg.etrain||0)):sn?250*(1+.2*(upg.strain||0)):265*(1+.2*(upg.btrain||0));
+  return{key,name:guo?'小郭':ws?'无双':xb?'小贝':xc?'秀才':xm?'小米':ex?'邢捕头':sn?'三娘':'老白',x:hx,y:hy,tx:hx,ty:hy,
+    home:{x:hx,y:hy},cur:null,carrying:[],esc:null,walkT:0,idleT:rand(0,9),face:1,moving:false,pt:null,
+    speed:base*(1+.08*(upg.wage||0))}
+}
+function startLevel(n){
+  const cfg=LEVELS[n-1];
+  G={level:n,cfg,t:0,income:0,timeLeft:cfg.time,closing:false,closeT:0,spawnT:1.0,angry:0,served:0,
+     tables:[],custs:[],stoves:[],counter:[],oq:[],runners:[],
+     P:{x:480,y:605,tx:480,ty:605,queue:[],cur:null,carrying:[],esc:null,walkT:0,idleT:0,face:1},
+     freeze:0,baiCd:0,baiAnim:-1,shake:0,dazuiSay:0,rally:0,rallyCd:0,rallyFx:-1,rallyPx:480,rallyPy:600,
+     combo:0,lastServeT:-99,buff:{tip:0,cook:0,market:0},nextEventT:rand(35,55),eventBanner:null,
+     thief:null,thiefT:(n>=4||cfg.endless)?rand(40,80):Infinity,
+     walkers:[],walkerT:rand(3,6),
+     day:{flow:nextBuffs.flow>0,price:nextBuffs.price>0,pat:nextBuffs.pat>0,tip:nextBuffs.tip>0},
+     rushT:nextBuffs.rush>0?60:0,
+     hints:{},hintTxt:null,hintT:0,floats:[],parts:[]};
+  const tn=Math.min(29,cfg.tables+upg.hall*3);
+  for(let i=0;i<tn;i++)G.tables.push({i,x:TABLE_POS[i][0],y:TABLE_POS[i][1],custs:[],money:0,plates:[]});
+  const sn=Math.min(6,cfg.stoves+(upg.stove||0)+(upg.apprentice||0));
+  for(let i=0;i<sn;i++)G.stoves.push({i,x:105+i*70,y:126,order:null,prog:0});
+  if(upg.bai>0)G.runners.push(mkRunner('bai'));
+  if(upg.guo>0)G.runners.push(mkRunner('guo'));
+  if(upg.wushuang>0)G.runners.push(mkRunner('wushuang'));
+  if(upg.xiaobei>0)G.runners.push(mkRunner('rxb'));
+  if(upg.xiucai>0)G.runners.push(mkRunner('rxc'));
+  if(upg.xiaomi>0)G.runners.push(mkRunner('xiaomi'));
+  if(upg.xing>0)G.runners.push(mkRunner('rxing'));
+  if(upg.san>0)G.runners.push(mkRunner('rsan'));
+  G.banquetLeft=nextBanquet?15:0;nextBanquet=false;G.banquetT=.2;
+  RUN.town={panned:false,bought:[],panResult:null,resDone:false};townOpts=null;
+  nextBuffs={flow:0,price:0,pat:0,tip:0};
+  state='intro';paused=false;
+}
+/* ============ 浮字/粒子 ============ */
+function addFloat(x,y,t,c,size){G.floats.push({x,y,txt:t,color:c||'#fff',size:size||17,t:0,life:1.7})}
+function heartParts(x,y){for(let i=0;i<6;i++)G.parts.push({x:x+rand(-16,16),y:y+rand(-8,8),vx:rand(-14,14),vy:rand(-55,-30),t:0,life:rand(.7,1.1),kind:'heart',col:'#ff7d9c'})}
+function coinParts(x,y){for(let i=0;i<7;i++)G.parts.push({x,y,vx:rand(-50,50),vy:rand(-120,-60),t:0,life:rand(.6,.9),kind:'coin',col:'#ffd24a'})}
+function starParts(x,y){for(let i=0;i<6;i++)G.parts.push({x,y,vx:rand(-60,60),vy:rand(-90,-30),t:0,life:rand(.5,.8),kind:'star',col:'#ffd24a'})}
+function updFx(dt){
+  for(const f of G.floats){f.t+=dt;f.y-=26*dt}
+  G.floats=G.floats.filter(f=>f.t<f.life);
+  for(const p of G.parts){p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=(p.kind==='coin'?260:60)*dt}
+  G.parts=G.parts.filter(p=>p.t<p.life);
+}
+function drawFx(){
+  for(const p of G.parts){const a=1-p.t/p.life;ctx.globalAlpha=a;
+    if(p.kind==='heart')heartP(p.x,p.y,6,p.col);
+    else if(p.kind==='coin'){ctx.fillStyle=p.col;ell(p.x,p.y,6,6,'#ffd24a');ctx.strokeStyle='#a67c1e';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(p.x,p.y,6,6,0,0,TAU);ctx.stroke()}
+    else star(p.x,p.y,6,p.col)}
+  ctx.globalAlpha=1;
+  for(const f of G.floats){const a=f.t<f.life-.5?1:(f.life-f.t)/.5;ctx.globalAlpha=a;
+    ctx.font='bold '+f.size+'px '+F_KAI;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(30,15,5,.85)';ctx.strokeText(f.txt,f.x,f.y);
+    ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y)}
+  ctx.globalAlpha=1;
+}
+function hint(key,t){if(!G||G.level!==1||G.hints[key])return;G.hints[key]=1;G.hintTxt=t;G.hintT=4.2}
+/* ============ 成就 ============ */
+let pendingAch=[];
+function achList(){try{return JSON.parse(localStorage.getItem('tfkz_ach')||'[]')}catch(e){return[]}}
+function unlockAch(key){
+  const list=achList();
+  if(list.includes(key))return;
+  list.push(key);
+  try{localStorage.setItem('tfkz_ach',JSON.stringify(list))}catch(e){}
+  const a=ACH.find(x=>x.key===key);
+  if(G&&state==='play')banner('🏅 成就解锁: '+a.name+'!'),sfx.coin();
+  else pendingAch.push(a.name);
+}
+/* ============ 小偷 ============ */
+function updThief(dt){
+  const th=G.thief;if(!th)return;
+  if(th.stun>0){th.stun-=dt;return}
+  if(th.state==='in'){
+    if(upg.bai>0){th.baiT-=dt;if(th.baiT<=0)return koThief(true)}
+    th.tx=th.target.x;th.ty=th.target.y+8;
+    if(walk(th,dt,150)){
+      if(th.target.money>0){th.stole=th.target.money;th.target.money=0;th.state='flee';
+        sfx.angry();addFloat(th.x,th.y-70,'钱被偷了! 快抓住 TA!','#ff8f86')}
+      else th.state='flee';
+    }
+  }else if(th.state==='flee'){
+    th.tx=DOOR.x;th.ty=DOOR.y;
+    if(walk(th,dt,185)){
+      if(th.stole>0){addFloat(W/2,290,'小偷跑了! 损失'+th.stole+'两!','#ff8f86',22);G.shake=6;sfx.angry()}
+      G.thief=null;
+    }
+  }
+}
+function koThief(byBai){
+  const th=G.thief;if(!th)return;
+  starParts(th.x,th.y-40);starParts(th.x,th.y-40);
+  if(th.stole>0){G.income+=th.stole;
+    addFloat(th.x,th.y-72,(byBai?'老白一个箭步! ':'')+'追回'+th.stole+'两!','#ffd24a',20);sfx.coin()}
+  else addFloat(th.x,th.y-72,byBai?'老白: 想从我这儿跑?':'小偷被赶跑了!','#cfe8ff');
+  unlockAch('thief');
+  G.thief=null;
+}
+/* ============ 街道路人/拉客/小贩 ============ */
+function autoSeat(){
+  if(upg.xiaobei<1)return;
+  const acts=[];
+  const P=G.P;if(P.cur)acts.push(P.cur);for(const a of P.queue)acts.push(a);
+  for(const o of G.runners)if(o.cur)acts.push(o.cur);
+  for(const c of G.custs){
+    if(c.state!=='queue')continue;
+    if(acts.some(a=>a.t==='seat'&&a.cust===c))continue;
+    const t=freeTableNear(c)||shareTableNear(c);
+    if(!t)break;
+    seatAt(c,t);
+    if(Math.random()<.3)addFloat(t.x,t.y-60,'小贝: 客官随便坐!','#ffd88a');
+    assignQueueTargets();
+  }
+}
+function updWalkers(dt){
+  G.walkerT-=dt;
+  if(!G.closing&&G.walkerT<=0&&G.walkers.length<3){
+    let type='pass';const r=Math.random();
+    if(r<.08&&G.level>=3)type='vendor';
+    else if(r<.23&&G.level>=2)type='rich';
+    else if(r<.53)type='hes';
+    const robes={pass:'#7a7468',hes:'#5f7a9c',rich:'#b08a3a',vendor:'#8a6a3a'};
+    G.walkers.push({type,robe:robes[type],x:W+30,y:650,tx:-60,ty:650,walkT:0,idleT:rand(0,9),face:-1,moving:true,dead:false,
+      spd:type==='vendor'?26:type==='rich'?36:rand(40,58)});
+    G.walkerT=rand(4,8);
+  }
+  for(const w of G.walkers){walk(w,dt,w.spd);if(w.x<=-50)w.dead=true}
+  G.walkers=G.walkers.filter(w=>!w.dead);
+}
+function lure(w,silent){
+  if(G.closing){if(!silent)addFloat(w.x,w.y-80,'打烊啦, 明天再来~','#ffae42');return}
+  const qn=G.custs.filter(c=>c.state==='queue'||c.state==='follow').length;
+  if(qn>=qCap()){if(!silent)addFloat(w.x,w.y-80,'店里坐不下了!','#ffae42');return}
+  let key;
+  if(w.type==='rich'){
+    const vips=['qian','zhixian','pinggu'].filter(k=>G.cfg.pool[k]);
+    key=vips[ri(0,vips.length-1)]||'qian';
+  }else{
+    const base=['beggar','biaoshi','xiaobei','xiucai','butou','diaochan'].filter(k=>G.cfg.pool[k]);
+    key=base[ri(0,base.length-1)]||'biaoshi';
+  }
+  spawnCust(key);
+  w.dead=true;sfx.door();
+  if(!silent)addFloat(w.x,w.y-90,'客官里边请~','#ffd27f');
+  if(w.type==='rich'&&!silent)addFloat(w.x,w.y-112,'贵客驾到!','#ffd24a');
+  try{const n=+(localStorage.getItem('tfkz_lure')||0)+1;
+    localStorage.setItem('tfkz_lure',String(n));
+    if(n>=10)unlockAch('lure10')}catch(e){}
+}
+function buyVendor(w){
+  if(G.income>=5){G.income-=5;G.buff.market=30;w.dead=true;sfx.coin();
+    addFloat(w.x,w.y-90,'时令食材! 30秒小费+50%','#9fe3ff')}
+  else addFloat(w.x,w.y-90,'今天营收不够5两…','#ffae42');
+}
+/* ============ 客人 ============ */
+function pickMenu(menu){let tot=0;for(const m of menu)tot+=m[1];let r=Math.random()*tot;for(const m of menu){r-=m[1];if(r<=0)return m[0]}return menu[0][0]}
+function spawnCust(forceKey){
+  const pool=G.cfg.pool;let tot=0;for(const k in pool)tot+=pool[k];
+  let r=Math.random()*tot,key=forceKey||'biaoshi';
+  if(!forceKey)for(const k in pool){r-=pool[k];if(r<=0){key=k;break}}
+  const def=CTYPES[key],order=[];
+  for(let i=0;i<def.dishes;i++){
+    if(RUN.researched&&RUN.researched.length&&Math.random()<.18)
+      order.push(RUN.researched[ri(0,RUN.researched.length-1)]);
+    else order.push(pickMenu(def.menu));
+  };
+  G.custs.push({def,key,door:0,x:DOOR.x,y:DOOR.y,tx:DOOR.x,ty:DOOR.y,state:'queue',phase:null,patience:1,
+    walkT:0,idleT:rand(0,9),face:1,moving:false,order,pending:order.slice(),received:[],
+    pay:0,tipPool:0,table:null,decideT:0,eatT:0,pop:0,dead:false,line:def.line});
+  sfx.door();hint('spawn','点击排队的客人, 带 TA 入座');
+}
+function assignQueueTargets(){
+  let qi=0;
+  for(const c of G.custs){if(c.state!=='queue')continue;
+    const p=qi<6?{x:86,y:550-qi*54}:{x:152,y:552-(qi-6)*50};
+    c.tx=p.x;c.ty=p.y;qi++;
+  }
+}
+function walk(o,dt,spd){const dx=o.tx-o.x,dy=o.ty-o.y,d=Math.hypot(dx,dy);
+  if(d<4){o.moving=false;return true}
+  const mv=Math.min(d,spd*dt);o.x+=dx/d*mv;o.y+=dy/d*mv;o.moving=true;o.walkT+=mv;
+  if(Math.abs(dx)>1.5)o.face=dx>0?1:-1;return false}
+function custLeave(c,angry){
+  if(angry){G.angry++;if(RUN)RUN.angry++;G.combo=0;sfx.angry();G.shake=Math.max(G.shake,7);
+    if(c.escorter){c.escorter.esc=null;c.escorter=null}
+    addFloat(c.x,c.y-86,'💢','#ff5148',24);addFloat(c.x,c.y-108,c.def.name+'生气走了!','#ff8f86');
+    G.oq=G.oq.filter(o=>o.cust!==c);
+    for(const s of G.stoves)if(s.order&&s.order.cust===c){s.order=null;s.prog=0}
+    const P=G.P;
+    for(let i=P.carrying.length-1;i>=0;i--)if(P.carrying[i].cust===c){P.carrying.splice(i,1);addFloat(P.x,P.y-96,'白做了…','#bbb')}
+    G.counter=G.counter.filter(it=>{if(it.cust===c){addFloat(counterPos(0).x,counterPos(0).y-20,'浪费了…','#aaa');return false}return true});
+    if(c.table){const i=c.table.custs.indexOf(c);if(i>=0)c.table.custs.splice(i,1);c.table=null}
+  }
+  c.state=angry?'angry':'leaving';
+  const dp=c.door?DOOR2:DOOR;c.tx=dp.x;c.ty=dp.y;
+  assignQueueTargets();
+}
+function updCust(c,dt){
+  c.pop=Math.max(0,c.pop-dt*2.5);c.idleT+=dt;
+  const spdMul=(c.state==='leaving'||c.state==='angry')?1.55:(c.state==='follow'?1.4:1);
+  if(c.state==='queue'){
+    walk(c,dt,c.def.spd*spdMul);
+    if((G.rally||0)>0)c.patience=Math.min(1,c.patience+dt*.04);
+    else if(G.freeze<=0){c.patience-=dt/(30*c.def.pat*(1+.15*upg.deco)*1.7*(G.day.pat?1.2:1));
+      if(c.patience<=0){custLeave(c,true);return}}
+  }else if(c.state==='follow'){
+    const e=c.escorter||G.P;c.tx=e.x-e.face*38;c.ty=e.y+6;
+    walk(c,dt,c.def.spd*spdMul*1.6);
+  }else if(c.state==='toTable'){
+    if(walk(c,dt,c.def.spd*2.3)){c.state='seated';c.phase='deciding';c.decideT=2.2;c.pop=1;c.moving=false}
+  }else if(c.state==='seated'){
+    if(c.phase==='deciding'){c.decideT-=dt;if(c.decideT<=0){c.phase='order';c.patience=1;c.pop=1}}
+    else if(c.phase==='order'||c.phase==='wait'){
+      const fpm=Math.max.apply(null,c.order.map(k=>(DISHES[k].fx&&DISHES[k].fx.patMul)||1));
+      if((G.rally||0)>0)c.patience=Math.min(1,c.patience+dt*.04);
+      else if(G.freeze<=0){const base=(c.phase==='order'?22:26)*(G.day.pat?1.2:1);
+        c.patience-=dt/(base*c.def.pat*(1+.15*upg.deco)*fpm);
+        if(c.patience<=0){custLeave(c,true);return}}
+    }else if(c.phase==='eat'){
+      c.eatT-=dt;
+      if(c.eatT<=0){
+        if(c.table){c.table.money+=c.pay+c.tipPool;const i=c.table.custs.indexOf(c);if(i>=0)c.table.custs.splice(i,1)}
+        if(c.key==='zhixian')unlockAch('vip');
+        c.state='leaving';const dp=c.door?DOOR2:DOOR;c.tx=dp.x;c.ty=dp.y;
+        addFloat(c.x,c.y-90,c.line,'#bfe3ff');heartParts(c.x,c.y-56);
+      }
+    }
+  }else if(c.state==='leaving'||c.state==='angry'){
+    if(walk(c,dt,c.def.spd*spdMul))c.dead=true;
+  }
+}
+/* ============ 厨房 ============ */
+function updKitchen(dt){
+  for(const s of G.stoves){if(!s.order&&G.oq.length){s.order=G.oq.shift();s.prog=0}}
+  for(const s of G.stoves){
+    if(!s.order)continue;
+    const need=DISHES[s.order.dish].time/(1+.15*upg.knife);
+    s.prog+=dt*(G.buff.cook>0?2:1)/need;
+    if(s.prog>=1){
+      if(G.counter.length<8){
+        G.counter.push({dish:s.order.dish,cust:s.order.cust,born:G.t});
+        s.order=null;s.prog=0;sfx.ready();
+        if(Math.random()<.55)G.dazuiSay=1.6;
+        hint('ready','点击出菜口的菜端起来 (双手能端2盘)');
+      }else s.prog=1;
+    }
+  }
+}
+/* ============ 玩家(佟湘玉) ============ */
+function validSeat(c){return c.state==='queue'}
+function validOrder(c){return c.state==='seated'&&c.phase==='order'}
+function freeTableNear(from){let bt=null,bd=1e9;
+  for(const t of G.tables){if(t.custs.length>0||t.money)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
+function shareTableNear(from){let bt=null,bd=1e9;
+  for(const t of G.tables){if(t.custs.length>=2||t.money)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
+function seatAt(c,t){
+  if(!t)return false;
+  const idx=t.custs.length;
+  c.state='toTable';c.tx=t.x+(idx===0?-27:27);c.ty=t.y-22;c.table=t;t.custs.push(c);c.patience=1;
+  return true}
+function actionTarget(a){const P=G.P;
+  if(a.t==='seat')return{x:a.cust.x,y:a.cust.y+8};
+  if(a.t==='order')return{x:a.cust.x,y:a.cust.y+42};
+  if(a.t==='pick'){const i=G.counter.indexOf(a.it);const p=counterPos(Math.max(0,i));return{x:p.x,y:p.y+34}}
+  if(a.t==='serve')return{x:a.cust.x,y:a.cust.y+42};
+  if(a.t==='collect')return{x:a.t2.x,y:a.t2.y+46};
+  return{x:P.x,y:P.y}}
+function updActor(A,dt,speed){
+  A.idleT+=dt;
+  if((G.rally||0)>0)speed*=1.5;
+  if(!A.cur&&A.queue&&A.queue.length)A.cur=A.queue.shift();
+  if(A.cur){
+    const a=A.cur;
+    if(a.t==='seat'&&a.step===0&&!validSeat(a.cust)){A.cur=null}
+    else if(a.t==='order'&&!validOrder(a.cust)){A.cur=null}
+    else if(a.t==='pick'&&G.counter.indexOf(a.it)<0){A.cur=null}
+    else if(a.t==='serve'&&!(a.cust.state==='seated'&&a.cust.phase==='wait')){A.cur=null}
+    else if(a.t==='collect'&&!(a.t2.money>0)){A.cur=null}
+    else{
+      const p=actionTarget(a);A.tx=p.x;A.ty=p.y;
+      if(walk(A,dt,speed)){
+        const done=execAction(a,A);
+        if(done!==false)A.cur=null;
+        A.moving=false;
+      }
+    }
+  }else A.moving=false;
+}
+function updPlayer(dt){
+  const P=G.P;
+  // 掌柜空闲时自动找活干, 迎宾为最低优先级兜底(与其他员工一致)
+  if(!P.cur&&!P.queue.length){
+    const k=pickTask(P);
+    if(k)P.cur=k;
+  }
+  if(!P.cur&&!P.queue.length){ // 没活干: 踱回大堂待机点
+    if(dist(P.x,P.y,537,551)>8){P.tx=537;P.ty=551;walk(P,dt,PSPEED());return}
+    P.moving=false;return;
+  }
+  updActor(G.P,dt,PSPEED());
+}
+function execAction(a,actor){
+  const A=actor||G.P;
+  if(a.t==='seat'){
+    const c=a.cust;
+    if(!validSeat(c))return;
+    const t=freeTableNear(c)||shareTableNear(c)||freeTableNear(A)||shareTableNear(A);
+    if(!t){addFloat(c.x,c.y-80,'没有空桌!','#ffae42');return}
+    // 引导式迎宾: 一指入座, 双人桌可拼桌
+    seatAt(c,t);
+    addFloat(t.x,t.y-64,'客官这边请~','#ffd27f');
+    assignQueueTargets();
+    hint('seat','客人想好后会举"!", 到时点击客人下单');
+  }else if(a.t==='order'){
+    const c=a.cust;if(!validOrder(c))return;
+    c.phase='wait';c.patience=1;
+    for(const k of c.order)G.oq.push({dish:k,cust:c});
+    sfx.order();
+    addFloat(c.x,c.y-82,'好嘞, '+DISHES[c.order[0]].name+'~','#ffe9a8');
+    if(c.order.length>1)addFloat(c.x,c.y-104,'再来一份!','#ffe9a8');
+    hint('order2','李大嘴做菜中… 菜好后出现在右上出菜口');
+  }else if(a.t==='pick'){
+    const i=G.counter.indexOf(a.it);
+    const cap=A.key?runnerCap(A):carryCap();
+    if(i<0||A.carrying.length>=cap)return;
+    // 批量取餐: 顺路把托盘装满(优先同一位客人的菜)
+    const take=[a.it];G.counter.splice(i,1);
+    const servable=it2=>it2.cust&&it2.cust.state==='seated'&&it2.cust.phase==='wait';
+    for(let pass=0;pass<2;pass++)
+      for(let j=G.counter.length-1;j>=0&&A.carrying.length+take.length<cap;j--){
+        const it2=G.counter[j];
+        if(servable(it2)&&(pass===1||it2.cust===a.it.cust)){
+          take.push(it2);G.counter.splice(j,1);
+        }
+      }
+    for(const it3 of take)A.carrying.push(it3);
+    if(take.length>1)addFloat(A.x,A.y-104,'一次端'+take.length+'盘!','#ffd27f');
+    sfx.click();
+    hint('carry','点击点了这道菜的客人上菜');
+  }else if(a.t==='serve'){
+    const c=a.cust;if(!(c.state==='seated'&&c.phase==='wait'))return;
+    const idx=A.carrying.findIndex(it=>it.cust===c);
+    if(idx<0)return;
+    const it=A.carrying.splice(idx,1)[0],d=DISHES[it.dish];
+    const i2=c.pending.indexOf(it.dish);if(i2>=0)c.pending.splice(i2,1);
+    c.received.push(it.dish);
+    if(G.t-G.lastServeT<8)G.combo++;else G.combo=1;
+    G.lastServeT=G.t;
+    const comboMul=1+.1*Math.min(G.combo-1,10);
+    c.pay+=Math.round(priceOf(it.dish)*c.def.pay);
+    const fx1=DISHES[it.dish].fx||{};
+    c.tipPool+=Math.round(priceOf(it.dish)*.35*c.patience*c.def.pay*(1+.25*upg.sign)*comboMul*(G.buff.tip>0?2:1)*(G.buff.market>0?1.5:1)*(G.day.tip?1.15:1)*(G.runners.some(rr=>rr.key==='rxc')?1.1:1)*(fx1.tipMul||1));
+    sfx.serve();G.served++;heartParts(c.x,c.y-62);
+    addFloat(c.x,c.y-84,d.name+' 来喽~','#9fe3ff');
+    if(G.combo>=3)addFloat(c.x,c.y-106,'连击x'+G.combo+' 🔥','#ffb347');
+    if(G.combo>=5)unlockAch('combo5');
+    try{const n=+(localStorage.getItem('tfkz_served')||0)+1;
+      localStorage.setItem('tfkz_served',String(n));
+      if(n>=50)unlockAch('dish50')}catch(e){}
+    if(c.pending.length===0){c.phase='eat';
+      const fem=Math.max.apply(null,c.received.map(k=>(DISHES[k].fx&&DISHES[k].fx.eatMul)||1));
+      c.eatT=(4.5+2.5*c.received.length)*fem;c.pop=1;sfx.eat();
+      hint('served','上齐菜客人开吃, 吃完桌上留下银两')}
+  }else if(a.t==='collect'){
+    const t=a.t2;if(!(t.money>0))return;
+    G.income+=t.money;
+    if(G.cfg.endless&&G.income>=200)unlockAch('endless200');
+    addFloat(t.x,t.y-64,'+'+t.money+'两','#ffd24a',22);sfx.coin();coinParts(t.x,t.y-28);
+    t.money=0;t.plates=[];
+    hint('done','收钱啦!');
+  }
+}
+function queueAction(a){
+  const P=G.P;
+  if((P.cur?1:0)+P.queue.length>=4){addFloat(P.x,P.y-110,'等一下! 忙不过来啦~','#ffae42');return}
+  P.queue.push(a);sfx.click();
+}
+/* ============ AI跑堂(白展堂/郭芙蓉) ============ */
+function runnerCap(r){return Math.min((r.key==='guo'||r.key==='wushuang'||r.key==='rxb'||r.key==='rxc'||r.key==='rxing'||r.key==='rsan'?1:2)+(upg.box||0),3)}
+function claimedTask(r,task){
+  const acts=[];
+  const P=G.P;if(P.cur)acts.push(P.cur);for(const a of P.queue)acts.push(a);
+  for(const o of G.runners)if(o!==r&&o.cur)acts.push(o.cur);
+  return acts.some(a=>a.t===task.t&&(a.cust===task.cust||a.it===task.it||a.t2===task.t2));
+}
+function pickTask(r){
+  for(const t of G.tables)if(t.money>0){const k={t:'collect',t2:t};if(!claimedTask(r,k))return k}
+  for(const it of r.carrying){const c=it.cust;
+    if(c&&c.state==='seated'&&c.phase==='wait'){const k={t:'serve',cust:c};if(!claimedTask(r,k))return k}}
+  if(r.carrying.length<runnerCap(r)){
+    for(const it of G.counter){const c=it.cust;
+      if(c&&c.state==='seated'&&c.phase==='wait'){const k={t:'pick',it};if(!claimedTask(r,k))return k}}}
+  for(const c of G.custs)if(c.state==='seated'&&c.phase==='order'){
+    const k={t:'order',cust:c};if(!claimedTask(r,k))return k}
+  for(const c of G.custs)if(c.state==='queue'&&freeTableNear(c)){
+    const k={t:'seat',cust:c,step:0};if(!claimedTask(r,k))return k}
+  return null;
+}
+function updRunner(r,dt){
+  // 小米: 专职上街拉客, 不做店内活
+  if(r.key==='xiaomi'){
+    let best=null,bd=1e9;
+    for(const w of G.walkers)if(w.type!=='pass'){
+      const d=dist(r.x,r.y,w.x,w.y);if(d<bd){bd=d;best=w}}
+    if(best&&best.x<940){
+      r.tx=best.x+24;r.ty=best.y;
+      walk(r,dt,r.speed*((G.rally||0)>0?1.5:1));
+      if(dist(r.x,r.y,best.x,best.y)<36)lure(best,true);
+    }else{
+      if(!r.pt||walk(r,dt,r.speed*.55))r.pt={x:rand(150,850),y:650},r.tx=r.pt.x,r.ty=r.pt.y;
+    }
+    return;
+  }
+  if(!r.cur){
+    r.cur=pickTask(r);
+    if(!r.cur){ // 没活儿: 回待机点
+      if(dist(r.x,r.y,r.home.x,r.home.y)>6){r.tx=r.home.x;r.ty=r.home.y;walk(r,dt,r.speed)}
+      else r.moving=false;
+      return;
+    }
+  }
+  updActor(r,dt,r.speed);
+}
+/* ============ 随机事件 ============ */
+function banner(t){G.eventBanner={txt:t,t:4}}
+function triggerEvent(){
+  const evs=['fair','inspire','beggar'],ev=evs[ri(0,2)];
+  if(ev==='fair'){G.buff.tip=20;banner('🧺 赶集日! 小费翻倍 20秒!');sfx.coin()}
+  else if(ev==='inspire'){G.buff.cook=15;banner('🔥 李大嘴灵感爆发! 做菜速度×2 15秒!');sfx.order()}
+  else{let n=0;
+    for(let i=0;i<3&&G.custs.filter(c=>c.state==='queue').length<6;i++){spawnCust('beggar');n++}
+    banner('🥣 丐帮大会! 门口来了'+n+'位丐兄!');sfx.door()}
+}
+/* ============ 葵花点穴手 ============ */
+function resumeEndless(){
+  G.angry=0;G.runners=[];
+  if(upg.bai>0)G.runners.push(mkRunner('bai'));
+  if(upg.guo>0)G.runners.push(mkRunner('guo'));
+  if(upg.wushuang>0)G.runners.push(mkRunner('wushuang'));
+  if(upg.xiaobei>0)G.runners.push(mkRunner('rxb'));
+  if(upg.xiucai>0)G.runners.push(mkRunner('rxc'));
+  if(upg.xiaomi>0)G.runners.push(mkRunner('xiaomi'));
+  if(upg.xing>0)G.runners.push(mkRunner('rxing'));
+  if(upg.san>0)G.runners.push(mkRunner('rsan'));
+  state='play';paused=false;
+  addFloat(W/2,300,'歇够了, 接着干——!','#ffd873',24);
+}
+function useBai(){
+  if(!G||state!=='play'||paused)return;
+  if(upg.bai<1||G.baiCd>0)return;
+  G.baiCd=25;G.freeze=5;G.baiAnim=0;sfx.freeze();
+  addFloat(W/2,300,'葵花点穴手——!','#cfe8ff',30);
+  for(const c of G.custs)if(c.state==='seated'||c.state==='queue')addFloat(c.x,c.y-118,'❄','#bfe8ff',20);
+}
+/* ============ 掌柜鼓舞士气 ============ */
+function useRally(){
+  if(!G||state!=='play'||paused)return;
+  if(G.rallyCd>0)return;
+  G.rallyCd=40;G.rally=10;G.rallyFx=0;G.rallyPx=G.P.x;G.rallyPy=G.P.y;
+  sfx.rally();
+  const lines=['额滴神呀——! 伙计们加油干!','俄给你们涨工钱!(才怪)','都精神点儿, 客人看着呢!','同心协力, 生意兴隆!'];
+  addFloat(G.P.x,G.P.y-112,lines[ri(0,lines.length-1)],'#ffd873',20);
+}
+/* ============ 主更新 ============ */
+function updatePlay(dt){
+  G.t+=dt;G.shake=Math.max(0,G.shake-dt*14);G.baiCd=Math.max(0,G.baiCd-dt);
+  G.freeze=Math.max(0,G.freeze-dt);G.hintT=Math.max(0,G.hintT-dt);
+  G.rally=Math.max(0,G.rally-dt);G.rallyCd=Math.max(0,G.rallyCd-dt);
+  if((G.rushT||0)>0)G.rushT-=dt;
+  if(G.rallyFx>=0){G.rallyFx+=dt/.9;if(G.rallyFx>1)G.rallyFx=-1}
+  G.dazuiSay=Math.max(0,G.dazuiSay-dt);
+  if(G.buff.tip>0)G.buff.tip-=dt;
+  if(G.buff.cook>0)G.buff.cook-=dt;
+  if(G.buff.market>0)G.buff.market-=dt;
+  if(G.eventBanner&&(G.eventBanner.t-=dt)<=0)G.eventBanner=null;
+  if(G.baiAnim>=0){G.baiAnim+=dt/.6;if(G.baiAnim>1)G.baiAnim=-1}
+  if(G.cfg.endless){
+    const day=Math.floor(G.t/120)+1;
+    if(day>G.level-20){G.level=20+day;banner('🌅 无尽 · 第'+day+'天, 客流更快了!');sfx.gong()}
+  }
+  if(pendingAch.length&&G.t>1){banner('🏅 成就解锁: '+pendingAch.shift()+'!');sfx.coin()}
+  if(G.cfg.endless&&G.angry>=8)return endLevel();
+  // 包席预约: 开场贵客组团上门
+  if(G.banquetLeft>0){
+    G.banquetT=(G.banquetT||0)-dt;
+    if(G.banquetT<=0){
+      if(G.banquetLeft>12){
+        const vips=['qian','zhixian','pinggu'].filter(k=>G.cfg.pool[k]);
+        spawnCust(vips[G.banquetLeft%vips.length]);
+        addFloat(DOOR.x+120,480,'🎊 包席贵客到!','#ffd24a',20);
+      }else{
+        const pool=G.cfg.pool,ks=Object.keys(pool);
+        spawnCust(ks[ri(0,ks.length-1)]);
+      }
+      G.banquetLeft--;G.banquetT=.5;
+    }
+  }
+  if(!G.closing){
+    // 小偷出没(第4天起/无尽)
+    if(!G.thief&&G.thiefT!==Infinity){
+      G.thiefT-=dt;
+      if(G.thiefT<=0){
+        const t=G.tables.find(t=>t.money>=15);
+        if(t){G.thief={x:DOOR.x,y:DOOR.y,tx:t.x,ty:t.y,hp:3,state:'in',target:t,stole:0,stun:0,walkT:0,idleT:0,face:1,moving:false,baiT:upg.bai>0?3:9999};
+          banner('🦹 有小偷! 快点击抓住 TA!');sfx.angry()}
+        G.thiefT=rand(55,90);
+      }
+    }
+    G.spawnT-=dt;
+    const qn=G.custs.filter(c=>c.state==='queue'||c.state==='follow').length;
+    if(G.spawnT<=0){
+      if(qn<qCap()){
+        spawnCust();
+        const ease=G.cfg.endless?Math.max(.15,1-(G.level-21)*.07):1;
+        G.spawnT=rand(G.cfg.spawn[0],G.cfg.spawn[1])*(qn>=qCap()-1?1.6:1)*ease*(G.day.flow?.85:1)*((G.rushT||0)>0?.5:1);
+      }else G.spawnT=2;
+    }
+    G.timeLeft-=dt;
+    if(G.timeLeft<=0){G.timeLeft=0;G.closing=true;G.closeT=0;
+      addFloat(W/2,270,'打烊喽—— 最后的客人请慢用~','#ffe9a8',22)}
+    // 随机事件(第2天起)
+    if(G.level>=2){G.nextEventT-=dt;
+      if(G.nextEventT<=0){triggerEvent();G.nextEventT=rand(45,70)}}
+  }else{
+    G.closeT+=dt;
+    if(G.custs.length===0||G.closeT>18)return endLevel();
+  }
+  updKitchen(dt);
+  autoSeat();
+  for(const c of G.custs)updCust(c,dt);
+  G.custs=G.custs.filter(c=>!c.dead);
+  updPlayer(dt);
+  for(const r of G.runners)updRunner(r,dt);
+  updThief(dt);
+  updWalkers(dt);
+  updFx(dt);
+}
+function endLevel(){
+  if(G.cfg.endless){const add=G.income-(G.banked||0);bank+=add;G.banked=G.income;state='fail';sfx.angry();return}
+  if(G.income>=G.cfg.target){
+    bank+=G.income;RUN.earn+=G.income;
+    unlockAch('first');
+    if(G.income>=150)unlockAch('rich');
+    if(G.angry===0)unlockAch('noangry');
+    if(G.level>=6)unlockAch('pass6');
+    if(G.level>=20)unlockAch('pass20');
+    if(G.level>best){best=G.level;localStorage.setItem('tfkz_best',String(best))}
+    state='pass';sfx.gong();
+  }else{state='fail';sfx.angry()}
+}
+function update(dt){
+  T+=dt;
+  if(state==='play'&&!paused){
+    for(let i=0;i<speedMul;i++){if(state!=='play')break;updatePlay(dt)}
+    ambient(dt);
+  }
+}
+/* ============ 背景绘制 ============ */
+function drawLantern(x,y,swing,scale){
+  ctx.save();ctx.translate(x,y);ctx.rotate(swing);
+  ctx.strokeStyle='#5a3a1c';ctx.lineWidth=3;line(0,0,0,14);
+  ell(0,14+11*scale,13*scale,4*scale,'#c99a3a');
+  const g=ctx.createRadialGradient(0,34*scale,4,0,34*scale,26*scale);
+  g.addColorStop(0,'rgba(255,190,90,.95)');g.addColorStop(1,'rgba(220,60,40,.95)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,36*scale,19*scale,22*scale,0,0,TAU);ctx.fill();
+  ctx.strokeStyle='rgba(120,20,10,.55)';ctx.lineWidth=1.5;
+  for(let i=-1;i<=1;i++){ctx.beginPath();ctx.ellipse(0,36*scale,Math.abs(i)*6+3,22*scale,0,0,TAU);ctx.stroke()}
+  ctx.strokeStyle='#d8b25a';ctx.lineWidth=2;line(0,58*scale,0,58*scale+13);
+  ctx.strokeStyle='#e3543e';line(-6,58*scale+4,6,58*scale+4);line(-5,58*scale+8,5,58*scale+8);
+  ctx.restore();
+}
+function drawBackdrop(detail){
+  // 地板
+  ctx.fillStyle='#b98d5a';ctx.fillRect(0,150,W,H-150);
+  // 店外街道
+  ctx.fillStyle='#8a8478';ctx.fillRect(0,634,W,H-634);
+  ctx.fillStyle='#767062';ctx.fillRect(0,634,W,6);
+  ctx.strokeStyle='rgba(40,36,28,.35)';ctx.lineWidth=1;
+  for(let x=20;x<W;x+=64){
+    line(x,640,x-10,H);
+    const off=((x/64)%2)*28;
+    line(x-off-32,640,x-off-32,H);
+  }
+  ctx.fillStyle='rgba(255,235,190,.14)';
+  for(let x=34;x<W;x+=128)ell(x,656,10,3,'rgba(255,235,190,.15)');
+  txt('七 侠 镇 · 大 街',480,670,12,'rgba(50,44,34,.5)','center',F_KAI,true);
+  ctx.strokeStyle='rgba(60,30,10,.14)';ctx.lineWidth=1;
+  for(let y=176;y<H;y+=30){line(0,y,W,y);
+    for(let x=((y/30)%2)*60;x<W;x+=120)line(x,y-30,x,y)}
+  // 墙
+  ctx.fillStyle='#7a5230';ctx.fillRect(0,0,W,150);
+  ctx.fillStyle='#6b4628';ctx.fillRect(0,144,W,8);
+  ctx.fillStyle='#5e3d22';
+  for(let x=0;x<=W;x+=240)ctx.fillRect(x-9,0,18,150);
+  // 窗
+  for(const wx of[660,850]){
+    ctx.fillStyle='#3d2814';rr(wx,52,86,64,4);ctx.fill();
+    ctx.fillStyle='#c9a36a';rr(wx+5,57,76,54,2);ctx.fill();
+    ctx.strokeStyle='#5e3d22';ctx.lineWidth=3;
+    line(wx+5+25.3,57,wx+5+25.3,111);line(wx+5+50.6,57,wx+5+50.6,111);line(wx+5,84,wx+81,84);
+  }
+  // 匾额
+  ctx.fillStyle='#4a2f16';rr(368,50,224,44,6);ctx.fill();
+  ctx.strokeStyle='#d8b25a';ctx.lineWidth=3;rr(373,55,214,34,4);ctx.stroke();
+  txt('同 福 客 栈',480,72,26,'#ffd873','center',F_KAI,true);
+  // 灯笼
+  drawLantern(300,54,Math.sin(T*1.1)*.07,.9);
+  drawLantern(620,54,Math.sin(T*1.3+.9)*.07,.9);
+  // 大门(左下)
+  ctx.fillStyle='#4a2f16';rr(4,452,66,158,4);ctx.fill();
+  ctx.fillStyle='#241407';rr(12,462,50,144,3);ctx.fill();
+  ctx.fillStyle='#a02a1e';
+  ctx.beginPath();ctx.moveTo(12,462);ctx.lineTo(62,462);ctx.lineTo(62,484);
+  ctx.quadraticCurveTo(37,506,12,484);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#d8b25a';ctx.lineWidth=2;line(37,464,37,506);
+  txt('客',37,524,16,'#caa46a');txt('官',37,546,16,'#caa46a');
+  if(detail)drawKitchen();
+}
+function drawKitchen(){
+  // 灶台
+  for(const s of G.stoves)drawStove(s);
+  // 出菜口
+  ctx.fillStyle='#8a5a2e';rr(486,128,452,26,5);ctx.fill();
+  ctx.fillStyle='#6b421e';rr(486,148,452,14,4);ctx.fill();
+  ctx.strokeStyle='#d8b25a';ctx.lineWidth=1.5;rr(486,128,452,26,5);ctx.stroke();
+  txt('出 菜 口',930,141,13,'#ffe9b0','center',F_KAI,true);
+  drawDazui();
+}
+function drawStove(s){
+  const x=s.x,y=s.y,cook=!!s.order;
+  ctx.fillStyle='#7e4634';rr(x-32,y-38,64,38,3);ctx.fill();
+  ctx.strokeStyle='#5d2f22';ctx.lineWidth=2;
+  for(let i=1;i<3;i++)line(x-32,y-38+i*12,x+32,y-38+i*12);
+  line(x-10,y-38,x-10,y);line(x+10,y-38,x+10,y);
+  // 锅
+  ell(x,y-42,29,10,'#1d1d1f');
+  ctx.fillStyle='#33333a';ctx.beginPath();ctx.ellipse(x,y-45,26,7,0,0,TAU);ctx.fill();
+  if(cook){
+    emo(DISHES[s.order.dish].emoji,x,y-58,20);
+    // 蒸汽
+    ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=2;
+    for(let i=0;i<2;i++){const ph=(T*1.2+i*.5)%1;ctx.globalAlpha=(1-ph)*.5;
+      ctx.beginPath();ctx.moveTo(x-14+i*28,y-66-ph*22);
+      ctx.quadraticCurveTo(x-14+i*28+5,y-70-ph*22,x-14+i*28,y-74-ph*22);ctx.stroke()}
+    ctx.globalAlpha=1;
+    // 进度条
+    ctx.fillStyle='rgba(20,10,5,.7)';rr(x-24,y-92,48,8,3);ctx.fill();
+    ctx.fillStyle=s.prog>=1?'#ffd24a':'#7ac74f';rr(x-23,y-91,46*clamp(s.prog,0,1),6,2);ctx.fill();
+    // 火苗
+    const fl=Math.sin(T*13+x)*3;
+    ctx.fillStyle='#ff8c2e';
+    for(const dx of[-14,0,14]){ctx.beginPath();ctx.moveTo(x+dx-6,y-40);
+      ctx.quadraticCurveTo(x+dx,y-52-fl-Math.abs(dx)*.3,x+dx+6,y-40);ctx.closePath();ctx.fill()}
+    ctx.fillStyle='#ffd24a';
+    ctx.beginPath();ctx.moveTo(x-4,y-40);ctx.quadraticCurveTo(x,y-47-fl,x+4,y-40);ctx.closePath();ctx.fill();
+  }
+}
+function drawDazui(){
+  const x=38,y=140,cook=G.stoves.some(s=>s.order);
+  ctx.save();ctx.translate(x,y);
+  ell(0,2,26,8,'rgba(0,0,0,.25)');
+  const bob=cook?Math.abs(Math.sin(T*9))*2.5:Math.sin(T*2)*1.2;
+  ctx.strokeStyle='#3a2c20';ctx.lineWidth=8;ctx.lineCap='round';
+  line(-9,-16,-11,0);line(9,-16,11,0);
+  // 身体(棕衣白围裙)
+  ctx.fillStyle='#9c6b3f';
+  ctx.beginPath();ctx.moveTo(-20,-58+bob);ctx.quadraticCurveTo(-30,-26,-26,-14+bob);
+  ctx.lineTo(26,-14+bob);ctx.quadraticCurveTo(30,-26,20,-58+bob);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#f2ede2';
+  ctx.beginPath();ctx.moveTo(-15,-50+bob);ctx.quadraticCurveTo(-20,-24,-18,-16+bob);
+  ctx.lineTo(18,-16+bob);ctx.quadraticCurveTo(20,-24,15,-50+bob);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#c9b99a';ctx.lineWidth=1.5;
+  for(let i=0;i<3;i++)line(-14,-44+i*8+bob,14,-44+i*8+bob);
+  // 手臂(颠勺)
+  ctx.strokeStyle='#9c6b3f';ctx.lineWidth=9;
+  if(cook){const a=Math.sin(T*10)*.5;
+    ctx.save();ctx.translate(18,-46+bob);ctx.rotate(-.9+a);
+    line(0,0,26,0);ctx.strokeStyle='#333';ctx.lineWidth=3;line(26,0,38,-6);
+    ell(40,-8,9,5,'#2b2b2b');ctx.restore();
+    ctx.save();ctx.translate(-18,-46+bob);ctx.rotate(.9-a);line(0,0,24,0);ctx.restore();
+  }else{line(-18,-46+bob,-28,-26);line(18,-46+bob,28,-26)}
+  // 头
+  ell(0,-66+bob,15,15,'#eec39a');
+  ctx.fillStyle='#2a2018';ctx.beginPath();ctx.arc(0,-68+bob,15,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#f5f5f0';rr(-11,-88+bob,22,16,4);ctx.fill();
+  ctx.fillStyle='#e8e2d2';rr(-9,-92+bob,18,7,3);ctx.fill();
+  ctx.fillStyle='#222';ell(-5,-64+bob,1.6,2);ell(5,-64+bob,1.6,2);
+  ctx.strokeStyle='#a05a3a';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(0,-60+bob,4,.15*Math.PI,.85*Math.PI);ctx.stroke();
+  if(cook){ctx.fillStyle='#7fd4ff';ell(14,-74+bob,2.5,4,'#8fd8ff')}
+  ctx.restore();
+  if(G.dazuiSay>0){
+    const bx=x+34,by=y-108;
+    ctx.fillStyle='rgba(255,252,240,.95)';rr(bx-30,by-14,60,28,7);ctx.fill();
+    ctx.beginPath();ctx.moveTo(bx-8,by+13);ctx.lineTo(bx+2,by+24);ctx.lineTo(bx+8,by+13);ctx.closePath();ctx.fill();
+    txt('菜好嘞!',bx,by,15,'#a03a1e','center',F_KAI,true);
+  }
+}
+/* ============ 人物绘制 ============ */
+function drawCust(c){
+  const d=c.def;
+  ctx.save();ctx.translate(c.x,c.y);
+  ell(0,2,20,7,'rgba(0,0,0,.25)');
+  const mv=c.moving,bob=mv?Math.abs(Math.sin(c.walkT*.05))*3:Math.sin(c.idleT*1.8)*1.2;
+  const yb=-bob;
+  ctx.strokeStyle='#3a2c20';ctx.lineWidth=5;ctx.lineCap='round';
+  const sw=mv?Math.sin(c.walkT*.05)*6:0;
+  line(-6,-16,-6-sw+yb*.3,0);line(6,-16,6+sw+yb*.3,0);
+  // 袍子
+  ctx.fillStyle=d.robe;
+  ctx.beginPath();ctx.moveTo(-12,-46+yb);ctx.quadraticCurveTo(-18,-22,-16,-13+yb);
+  ctx.lineTo(16,-13+yb);ctx.quadraticCurveTo(18,-22,12,-46+yb);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(-15,-17+yb,30,4);
+  ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(-12,-34+yb,4,16);
+  if(c.key==='beggar'){ctx.fillStyle='#6b5a3c';ctx.fillRect(2,-40+yb,9,9);
+    ctx.strokeStyle='#4a3b28';ctx.lineWidth=1;line(2,-36+yb,11,-36+yb);line(6,-40+yb,6,-31+yb)}
+  // 手臂
+  ctx.strokeStyle=d.robe;ctx.lineWidth=6;
+  const asw=mv?Math.sin(c.walkT*.05)*5:0;
+  line(-10,-40+yb,-16,-22+yb+asw);line(10,-40+yb,16,-22+yb-asw);
+  // 头
+  ell(0,-56+yb,13,13,d.skin);
+  ctx.fillStyle=d.hair;ctx.beginPath();ctx.arc(0,-58+yb,13,Math.PI*.95,Math.PI*2.05);ctx.fill();
+  if(c.key==='beggar'){ctx.strokeStyle=d.hair;ctx.lineWidth=2;
+    for(const a of[-.9,-.5,-.1,.3,.7]){line(Math.cos(a-Math.PI)*8,-60+yb,Math.cos(a-Math.PI)*12,-66+yb)}}
+  // 眼睛(眨眼)
+  const blink=(c.idleT%4.2)<.13;
+  ctx.fillStyle='#241a12';
+  if(blink){ctx.lineWidth=1.4;ctx.strokeStyle='#241a12';line(-7,-56+yb,-3,-56+yb);line(3,-56+yb,7,-56+yb)}
+  else{ell(-5,-56+yb,1.7,2.4);ell(5,-56+yb,1.7,2.4)}
+  if(c.key==='pinggu'){ell(-5,-56+yb,1.7,2.4,'#c02020');ell(5,-56+yb,1.7,2.4,'#c02020')}
+  // 嘴
+  if(c.key!=='pinggu'){
+    ctx.strokeStyle='#8a4a3a';ctx.lineWidth=1.6;
+    const sm=(c.state==='seated'&&(c.phase==='eat'||c.phase==='pay'))?5:3;
+    ctx.beginPath();ctx.arc(0,-50+yb,sm,.1*Math.PI,.9*Math.PI);ctx.stroke();
+  }
+  // 帽子/头饰
+  if(d.hat==='douli'){
+    ctx.fillStyle='#b99a5f';ctx.beginPath();ctx.moveTo(0,-76+yb);
+    ctx.lineTo(-16,-64+yb);ctx.lineTo(16,-64+yb);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#8a6f3f';ctx.lineWidth=1.5;line(-17,-64+yb,17,-64+yb);
+  }else if(d.hat==='guanmao'){
+    ctx.fillStyle='#1c1a18';rr(-13,-70+yb,26,9,3);ctx.fill();
+    ell(-15,-66+yb,5,6,'#1c1a18');ell(15,-66+yb,5,6,'#1c1a18');
+    ell(-15,-66+yb,2.5,3,'#d8b25a');ell(15,-66+yb,2.5,3,'#d8b25a');
+  }else if(d.hat==='flower'){
+    ctx.fillStyle='#c4302e';ell(9,-68+yb,5,5,'#c4302e');ell(13,-64+yb,5,5,'#e3543e');
+    ell(6,-63+yb,4.5,4.5,'#e3543e');ell(9.5,-65+yb,2.2,2.2,'#ffd24a');
+  }else if(d.hat==='pearl'){
+    ctx.strokeStyle='#d8b25a';ctx.lineWidth=2;line(-12,-64+yb,12,-64+yb);
+    ell(12,-64+yb,3,3,'#fff');ell(-13,-52+yb,2,2,'#fff');ell(13,-52+yb,2,2,'#fff');
+  }else if(d.hat==='scarf'){
+    ctx.fillStyle='#23232b';ctx.beginPath();
+    ctx.moveTo(-13,-56+yb);ctx.quadraticCurveTo(0,-46+yb,13,-56+yb);
+    ctx.lineTo(13,-50+yb);ctx.quadraticCurveTo(0,-40+yb,-13,-50+yb);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#1c1a18';rr(-13,-70+yb,26,10,4);ctx.fill();
+  }else if(d.hat==='bun2'){
+    ell(-9,-70+yb,6.5,6.5,d.hair);ell(9,-70+yb,6.5,6.5,d.hair);
+    ell(-9,-70+yb,3,3,'#e8b04a');ell(9,-70+yb,3,3,'#e8b04a');
+    ctx.strokeStyle=d.hair;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(0,-58+yb,13,Math.PI*.85,Math.PI*1.05);ctx.stroke();
+  }else if(d.hat==='fajin'){
+    ctx.fillStyle='#e8e2d2';
+    ctx.beginPath();ctx.moveTo(-13,-62+yb);ctx.quadraticCurveTo(0,-80+yb,13,-62+yb);
+    ctx.lineTo(11,-56+yb);ctx.quadraticCurveTo(0,-70+yb,-11,-56+yb);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#8a3a2a';ctx.lineWidth=1.5;line(-11,-60+yb,11,-60+yb);
+  }else if(d.hat==='wusha'){
+    ctx.fillStyle='#1a1814';ell(0,-68+yb,13,9,'#1a1814');
+    ctx.fillStyle='#26221c';rr(-15,-66+yb,30,7,3);ctx.fill();
+    ell(-16,-63+yb,7,4,'#1a1814');ell(16,-63+yb,7,4,'#1a1814');
+    ell(-16,-63+yb,4,2,'#d8b25a');ell(16,-63+yb,4,2,'#d8b25a');
+    ctx.fillStyle='#c9932a';ell(0,-63+yb,3.5,2.5,'#c9932a');
+  }
+  ctx.restore();
+}
+function drawTong(){
+  const P=G.P;
+  ctx.save();ctx.translate(P.x,P.y);
+  ell(0,2,20,7,'rgba(0,0,0,.28)');
+  const mv=P.moving,bob=mv?Math.abs(Math.sin(P.walkT*.05))*3:Math.sin(P.idleT*1.8)*1.2;
+  const yb=-bob;
+  ctx.strokeStyle='#3a2430';ctx.lineWidth=5;ctx.lineCap='round';
+  const sw=mv?Math.sin(P.walkT*.05)*6:0;
+  line(-5,-16,-5-sw,0);line(5,-16,5+sw,0);
+  // 粉袍
+  ctx.fillStyle='#d8628a';
+  ctx.beginPath();ctx.moveTo(-11,-46+yb);ctx.quadraticCurveTo(-18,-22,-17,-12+yb);
+  ctx.lineTo(17,-12+yb);ctx.quadraticCurveTo(18,-22,11,-46+yb);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#b8446e';ctx.fillRect(-16,-16+yb,32,4);
+  ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(-9,-40+yb,5,20);
+  ctx.fillStyle='#ffd24a';
+  ell(-8,-32+yb,2,2,'#ffd24a');ell(9,-27+yb,2,2,'#ffd24a');ell(0,-22+yb,2,2,'#ffd24a');
+  // 手臂
+  ctx.strokeStyle='#d8628a';ctx.lineWidth=6;
+  line(-9,-40+yb,-17,-24+yb+sw);line(9,-40+yb,17,-24+yb-sw);
+  // 头
+  ell(0,-56+yb,13,13,'#f2cba4');
+  ctx.fillStyle='#241a14';ctx.beginPath();ctx.arc(0,-58+yb,13,Math.PI*.9,Math.PI*2.1);ctx.fill();
+  ell(0,-70+yb,6.5,6,'#241a14');
+  ctx.fillStyle='#c4302e';ell(7,-68+yb,4.5,4.5,'#c4302e');ell(10.5,-65+yb,3.5,3.5,'#e3543e');ell(7.5,-63.5+yb,3,3,'#e3543e');ell(8.2,-66+yb,1.8,1.8,'#ffd24a');
+  const blink=(P.idleT%3.6)<.12;
+  ctx.fillStyle='#241a12';
+  if(blink){ctx.strokeStyle='#241a12';ctx.lineWidth=1.4;line(-7,-55+yb,-3,-55+yb);line(3,-55+yb,7,-55+yb)}
+  else{ell(-5,-55+yb,1.7,2.3);ell(5,-55+yb,1.7,2.3)}
+  ctx.fillStyle='rgba(230,110,120,.5)';ell(-9,-51+yb,2.5,1.5);ell(9,-51+yb,2.5,1.5);
+  ctx.strokeStyle='#a03a4a';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.arc(0,-50+yb,3.4,.1*Math.PI,.9*Math.PI);ctx.stroke();
+  ctx.restore();
+  drawTray(P);
+  // 队列动作图标
+  const acts=[];if(P.cur)acts.push(P.cur);for(const a of P.queue)acts.push(a);
+  for(let i=0;i<acts.length;i++){
+    const ax=P.x-18+i*20,ay=P.y-126;
+    ctx.fillStyle='rgba(30,16,6,.75)';ctx.beginPath();ctx.arc(ax,ay,10,0,TAU);ctx.fill();
+    ctx.strokeStyle='rgba(255,215,120,.7)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(ax,ay,10,0,TAU);ctx.stroke();
+    const ic={seat:'🧍',order:'📝',pick:'🍽️',serve:'🍜',collect:'💰'}[acts[i].t];
+    emo(ic,ax,ay+1,13);
+  }
+}
+function drawTray(A){
+  if(!A.carrying||!A.carrying.length)return;
+  const tx=A.x+A.face*20,ty=A.y-78;
+  ell(tx,ty+8,26,8,'rgba(0,0,0,.2)');
+  ell(tx,ty+6,25,9,'#8a5a2e');ell(tx,ty+4,23,7,'#a8723f');
+  for(let i=0;i<A.carrying.length;i++)emo(DISHES[A.carrying[i].dish].emoji,tx-10+i*22,ty-8,22);
+}
+function drawRunner(r){
+  const guo=r.key==='guo',ws=r.key==='wushuang',xb=r.key==='rxb',xc=r.key==='rxc',xm=r.key==='xiaomi',ex=r.key==='rxing',sn=r.key==='rsan';
+  const robe=guo?'#6a9c5a':ws?'#e8c8d8':xb?'#d4a843':xc?'#7a8a6a':xm?'#8d7b57':ex?'#7a6248':sn?'#9c4a5a':'#cfd6de';
+  const robeD=guo?'#2c4020':ws?'#7a3a55':xb?'#8a6a1a':xc?'#3a4430':xm?'#4a3b28':ex?'#3e3226':sn?'#5a2a34':'#3a3f46';
+  const sc=xb?.82:xm?.9:1;
+  // 老白跑得快, 画残影; 小贝小短腿倒腾得飞快
+  if(r.moving&&!guo&&!ws&&!xb&&!xc){
+    for(let i=1;i<=2;i++){
+      ctx.globalAlpha=.13/i;
+      ell(r.x-r.face*i*18,r.y-32,15,26,robe);
+    }
+    ctx.globalAlpha=1;
+  }
+  ctx.save();ctx.translate(r.x,r.y);ctx.scale(sc,sc);
+  ell(0,2,19,7,'rgba(0,0,0,.25)');
+  const mv=r.moving,bob=mv?Math.abs(Math.sin(r.walkT*.055))*3:Math.sin(r.idleT*1.8)*1.2;
+  const yb=-bob;
+  ctx.strokeStyle=robeD;ctx.lineWidth=5;ctx.lineCap='round';
+  const sw=mv?Math.sin(r.walkT*.055)*7:0;
+  line(-5,-16,-5-sw,0);line(5,-16,5+sw,0);
+  // 衣袍
+  ctx.fillStyle=robe;
+  ctx.beginPath();ctx.moveTo(-11,-46+yb);ctx.quadraticCurveTo(-17,-22,-16,-13+yb);
+  ctx.lineTo(16,-13+yb);ctx.quadraticCurveTo(17,-22,11,-46+yb);ctx.closePath();ctx.fill();
+  if(guo){ctx.fillStyle='#c9a36a';ctx.fillRect(-13,-34+yb,26,5)}
+  else if(xm){ctx.fillStyle='#6b5a3c';ctx.fillRect(2,-40+yb,9,9);
+    ctx.strokeStyle='#4a3b28';ctx.lineWidth=1;line(2,-36+yb,11,-36+yb);line(6,-40+yb,6,-31+yb)}
+  else if(sn){ctx.fillStyle='#6b4a3a';ctx.fillRect(-13,-34+yb,26,5)}
+  else if(ws){ctx.fillStyle='#c85a7a';ctx.fillRect(-13,-34+yb,26,4);
+    ctx.fillStyle='rgba(255,255,255,.35)';ctx.fillRect(-10,-44+yb,4,24)}
+  else{ctx.fillStyle='rgba(120,140,160,.5)';ctx.fillRect(-14,-33+yb,28,3)}
+  // 手臂
+  ctx.strokeStyle=robe;ctx.lineWidth=6;
+  line(-9,-40+yb,-16,-23+yb+sw);line(9,-40+yb,16,-23+yb-sw);
+  // 头
+  ell(0,-56+yb,13,13,'#eec39a');
+  const hairC=guo?'#2c3a20':ws?'#3a2c33':'#33302c';
+  ctx.fillStyle=hairC;ctx.beginPath();ctx.arc(0,-58+yb,13,Math.PI*.9,Math.PI*2.1);ctx.fill();
+  if(guo){ // 双丫髻
+    ell(-10,-69+yb,6,6,hairC);ell(10,-69+yb,6,6,hairC);
+    ell(-10,-69+yb,2.5,2.5,'#d8354a');ell(10,-69+yb,2.5,2.5,'#d8354a');
+  }else if(xm){ // 乱发+捧碗
+    ctx.strokeStyle=hairC;ctx.lineWidth=2;
+    for(const a of[-1,-.6,-.2,.2,.6,1])
+      line(Math.sin(a*Math.PI)*8,-62+yb,Math.sin(a*Math.PI)*13,-68+yb);
+  }else if(xb){ // 双丸子头+金圈
+    ell(-9,-70+yb,6.5,6.5,hairC);ell(9,-70+yb,6.5,6.5,hairC);
+    ell(-9,-70+yb,3,3,'#e8b04a');ell(9,-70+yb,3,3,'#e8b04a');
+    ctx.strokeStyle='#e8b04a';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(0,-58+yb,13,Math.PI*.85,Math.PI*1.05);ctx.stroke();
+  }else if(ex){ // 捕快帽+络腮胡
+    ctx.fillStyle='#1a1814';ell(0,-68+yb,13,9,'#1a1814');
+    ctx.fillStyle='#26221c';rr(-15,-66+yb,30,7,3);ctx.fill();
+    ell(-16,-63+yb,7,4,'#1a1814');ell(16,-63+yb,7,4,'#1a1814');
+    ctx.fillStyle='#3e3226';rr(-4,-50+yb,8,4,2);ctx.fill();
+  }else if(sn){ // 高发髻+木簪
+    ell(0,-70+yb,6,7,'#3a2c33');
+    ctx.strokeStyle='#b08a5a';ctx.lineWidth=2;line(-4,-70+yb,6,-74+yb);
+  }else if(xc){ // 书生方巾
+    ctx.fillStyle='#e8e2d2';
+    ctx.beginPath();ctx.moveTo(-13,-62+yb);ctx.quadraticCurveTo(0,-80+yb,13,-62+yb);
+    ctx.lineTo(11,-56+yb);ctx.quadraticCurveTo(0,-70+yb,-11,-56+yb);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#8a3a2a';ctx.lineWidth=1.5;line(-11,-60+yb,11,-60+yb);
+  }else if(ws){ // 单髻+粉花+飘带
+    ell(0,-69+yb,5.5,4.5,hairC);
+    ctx.fillStyle='#e87aa0';ell(8,-67+yb,3.5,3.5,'#e87aa0');ell(6,-64+yb,2.5,2.5,'#f5a0bd');
+    ctx.strokeStyle='#e87aa0';ctx.lineWidth=2.5;
+    const fl=Math.sin(r.idleT*2.2)*3;
+    ctx.beginPath();ctx.moveTo(-9,-66+yb);
+    ctx.quadraticCurveTo(-18,-60+yb+fl,-15,-50+yb+fl);ctx.stroke();
+  }else{ // 束发+发带
+    ell(0,-69+yb,5,4,hairC);
+    ctx.strokeStyle='#4a6a8a';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(-6,-68+yb);ctx.quadraticCurveTo(-14,-62+yb,-9,-56+yb);ctx.stroke();
+  }
+  const blink=(r.idleT%4.5)<.13;
+  ctx.fillStyle='#241a12';
+  if(blink){ctx.strokeStyle='#241a12';ctx.lineWidth=1.4;line(-7,-56+yb,-3,-56+yb);line(3,-56+yb,7,-56+yb)}
+  else{ell(-5,-56+yb,1.7,2.3);ell(5,-56+yb,1.7,2.3)}
+  ctx.strokeStyle='#8a4a3a';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.arc(0,-50+yb,3.2,.1*Math.PI,.9*Math.PI);ctx.stroke();
+  ctx.restore();
+  drawTray(r);
+  // 名牌
+  ctx.font='11px '+F_KAI;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.lineWidth=3;ctx.strokeStyle='rgba(30,15,5,.8)';
+  const ny=r.y-92-((r.carrying&&r.carrying.length)?24:0);
+  ctx.strokeText(r.name,r.x,ny);
+  ctx.fillStyle=guo?'#b9e8a0':ws?'#f5c0d5':xb?'#ffd88a':xc?'#cfe2b0':xm?'#e8d5a0':ex?'#e0c9a0':sn?'#f0c0c8':'#cfe0f2';
+  ctx.fillText(r.name,r.x,ny);
+  if(xc){txt('小费+10%',r.x,ny-16,10,'#9fe3af')}
+  if(xm){txt('自动拉客',r.x,ny-16,10,'#e8d5a0')}
+  if(xb){txt('直接入座',r.x,ny-16,10,'#ffd88a')}
+}
+/* ============ 桌子/出菜口 ============ */
+function drawThief(){
+  const th=G.thief;if(!th)return;
+  const isHov=hover&&hover.kind==='thief';
+  if(isHov){ctx.strokeStyle='rgba(255,107,90,.9)';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(th.x,th.y-30,42,0,TAU);ctx.stroke()}
+  ctx.save();ctx.translate(th.x,th.y);
+  ell(0,2,16,6,'rgba(0,0,0,.3)');
+  const mv=th.moving,bob=mv?Math.abs(Math.sin(th.walkT*.06))*3:0;
+  const yb=-bob;
+  ctx.strokeStyle='#111';ctx.lineWidth=4;ctx.lineCap='round';
+  const sw=mv?Math.sin(th.walkT*.06)*6:0;
+  line(-4,-13,-4-sw,0);line(4,-13,4+sw,0);
+  ctx.fillStyle='#26262e';
+  ctx.beginPath();ctx.moveTo(-9,-38+yb);ctx.quadraticCurveTo(-14,-18,-13,-11+yb);
+  ctx.lineTo(13,-11+yb);ctx.quadraticCurveTo(14,-18,9,-38+yb);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#26262e';ctx.lineWidth=5;
+  line(-7,-32+yb,-13,-18+yb+sw);line(7,-32+yb,13,-18+yb-sw);
+  ell(0,-46+yb,11,11,'#d8b48c');
+  ctx.fillStyle='#1a1a20';rr(-11,-52+yb,22,10,4);ctx.fill();
+  ctx.fillStyle='#1a1a20';rr(-10,-46+yb,20,8,3);ctx.fill();
+  const look=Math.sin(T*3)>0?1.5:-1.5;
+  ctx.fillStyle='#fff';ell(-4,-42+yb,2.6,2);ell(4,-42+yb,2.6,2);
+  ctx.fillStyle='#111';ell(-4+look,-42+yb,1.3,1.5);ell(4+look,-42+yb,1.3,1.5);
+  ctx.restore();
+  if(th.stole>0)emo('💰',th.x+15,th.y-58,18);
+  if(th.stun>0)for(let i=0;i<3;i++){const a=T*5+i*TAU/3;star(th.x+Math.cos(a)*16,th.y-66+Math.sin(a)*5,5,'#ffd24a')}
+}
+function drawWalker(w){
+  const isHov=hover&&hover.kind==='walker'&&hover.ref===w;
+  const clickable=w.type!=='pass';
+  if(isHov&&clickable){ctx.strokeStyle='rgba(255,220,120,.9)';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(w.x,w.y-32,38,0,TAU);ctx.stroke()}
+  ctx.save();ctx.translate(w.x,w.y);ctx.scale(.82,.82);
+  ell(0,2,18,6,'rgba(0,0,0,.22)');
+  const bob=w.moving?Math.abs(Math.sin(w.walkT*.05))*3:Math.sin(w.idleT*1.8)*1.2;
+  const yb=-bob;
+  ctx.strokeStyle='#3a3228';ctx.lineWidth=5;ctx.lineCap='round';
+  const sw=w.moving?Math.sin(w.walkT*.05)*6:0;
+  line(-5,-15,-5-sw,0);line(5,-15,5+sw,0);
+  ctx.fillStyle=w.robe;
+  ctx.beginPath();ctx.moveTo(-11,-44+yb);ctx.quadraticCurveTo(-16,-22,-15,-12+yb);
+  ctx.lineTo(15,-12+yb);ctx.quadraticCurveTo(16,-22,11,-44+yb);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=w.robe;ctx.lineWidth=6;
+  line(-8,-38+yb,-14,-22+yb+sw);line(8,-38+yb,14,-22+yb-sw);
+  ell(0,-53+yb,12,12,'#e8c39a');
+  ctx.fillStyle='#33291e';ctx.beginPath();ctx.arc(0,-55+yb,12,Math.PI*.95,Math.PI*2.05);ctx.fill();
+  ctx.fillStyle='#241a12';ell(-4,-53+yb,1.5,2);ell(4,-53+yb,1.5,2);
+  if(w.type==='rich'){ctx.fillStyle='#e8c05a';ctx.fillRect(-9,-66+yb,18,4)}
+  ctx.restore();
+  // 头顶图标
+  if(w.type==='hes'){
+    const b=Math.abs(Math.sin(T*3.5))*4;
+    ctx.font='bold 22px '+F_KAI;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(30,15,5,.8)';
+    ctx.strokeText('?',w.x,w.y-76-b);
+    ctx.fillStyle='#ffd24a';ctx.fillText('?',w.x,w.y-76-b);
+  }else if(w.type==='rich')emo('💎',w.x,w.y-76,18);
+  else if(w.type==='vendor'){
+    // 小推车
+    ctx.fillStyle='#8a5a2e';rr(w.x+14,w.y-30,34,16,3);ctx.fill();
+    ctx.strokeStyle='#5e3d22';ctx.lineWidth=2;rr(w.x+14,w.y-30,34,16,3);ctx.stroke();
+    ctx.fillStyle='#333';ell(w.x+22,w.y-10,6,6,'#2c2c2e');ell(w.x+42,w.y-10,6,6,'#2c2c2e');
+    emo('🥬',w.x+22,w.y-36,15);emo('🍗',w.x+40,w.y-36,15);
+    txt('5两',w.x+31,w.y-58,12,'#ffd24a','center',F_KAI,true);
+  }
+}
+function drawTable(t){
+  const isHov=hover&&hover.kind==='table'&&hover.ref===t;
+  ell(t.x,t.y+26,44,13,'rgba(0,0,0,.22)');
+  ctx.strokeStyle='#6b421e';ctx.lineWidth=7;
+  line(t.x-14,t.y+8,t.x-18,t.y+30);line(t.x+14,t.y+8,t.x+18,t.y+30);
+  ell(t.x,t.y,50,21,'#8a5a2e');
+  ell(t.x,t.y-3,48,19,'#a8723f');
+  ctx.strokeStyle='rgba(60,32,12,.4)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(t.x,t.y-3,34,13,0,0,TAU);ctx.stroke();
+  ell(t.x,t.y+30,26,8,'#5e3d22');
+  // 盘中菜
+  let pl=[];for(const cu of t.custs)if(cu.state==='seated'&&cu.phase==='eat')pl=pl.concat(cu.received);
+  for(let i=0;i<pl.length;i++){
+    const px=t.x-16+i*24;
+    ell(px,t.y-4,11,5,'#f2ede2');emo(DISHES[pl[i]].emoji,px,t.y-10,16);
+  }
+  // 银两
+  if(t.money>0){
+    const p=1+Math.sin(T*4)*.06;
+    ctx.save();ctx.translate(t.x,t.y-6);ctx.scale(p,p);
+    ctx.fillStyle='rgba(255,220,120,.25)';ctx.beginPath();ctx.arc(0,0,22,0,TAU);ctx.fill();
+    ell(0,-3,15,6,'#e9edf4');ell(0,-8,11,4.5,'#f7f9fd');
+    ctx.strokeStyle='#9aa6b8';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.ellipse(0,-3,15,6,0,0,TAU);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(0,-8,11,4.5,0,0,TAU);ctx.stroke();
+    txt('银',0,-5,9,'#5a6b85','center',F_KAI,true);
+    ctx.restore();
+    txt('+'+t.money,t.x,t.y-30,13,'#ffd24a','center',F_KAI,true);
+  }
+  if(isHov&&t.money>0){
+    ctx.strokeStyle='rgba(255,220,120,.9)';ctx.lineWidth=3;
+    ctx.beginPath();ctx.ellipse(t.x,t.y,56,26,0,0,TAU);ctx.stroke();
+  }
+}
+function drawCounterDishes(){
+  for(let i=0;i<G.counter.length;i++){
+    const it=G.counter[i],p=counterPos(i);
+    const fresh=clamp(1-(G.t-it.born)*3,0,1),sc=1+fresh*.35;
+    const isHov=hover&&hover.kind==='dish'&&hover.ref===it;
+    ctx.save();ctx.translate(p.x,p.y);ctx.scale(sc,sc);
+    if(isHov){ctx.strokeStyle='rgba(255,220,120,.9)';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(0,-8,30,0,TAU);ctx.stroke()}
+    ell(0,4,25,9,'rgba(0,0,0,.2)');
+    ell(0,2,24,9,'#f2ede2');ell(0,0,20,7,'#fff');
+    emo(DISHES[it.dish].emoji,0,-12,26);
+    ctx.restore();
+  }
+}
+/* ============ 气泡 ============ */
+function drawBubble(c){
+  const bx=c.x,by=c.y-104;
+  if(c.state==='queue'){
+    drawHeart5(bx,c.y-64,c.patience);
+    return;
+  }
+  if(c.state!=='seated')return;
+  drawHeart5(bx,c.y-64,c.patience);
+  let content=null,w=46;
+  if(c.phase==='deciding'){content='💭';w=36}
+  else if(c.phase==='order'){content='!';w=34}
+  else if(c.phase==='wait'){
+    w=26+c.pending.length*26;
+    for(let i=0;i<c.pending.length;i++){
+      const dx=bx-w/2+18+i*26;
+      emo(DISHES[c.pending[i]].emoji,dx,by+2,20+Math.sin(T*3+i)*1.5);
+    }
+  }
+  else if(c.phase==='eat'){content='😋';w=36}
+  else if(c.phase==='pay'){content='💰';w=38}
+  if(c.phase==='wait')return; // 直接画食材图标, 无需气泡底
+  const sc=1+c.pop*.4;
+  ctx.save();ctx.translate(bx,by);ctx.scale(sc,sc);
+  ctx.fillStyle='rgba(255,252,240,.96)';rr(-w/2,-19,w,38,9);ctx.fill();
+  ctx.beginPath();ctx.moveTo(-7,18);ctx.lineTo(0,30);ctx.lineTo(7,18);ctx.closePath();ctx.fill();
+  if(content==='!'){
+    const b=Math.abs(Math.sin(T*5))*4;
+    txt('!',0,-2+b,30,'#d8302a','center',F_KAI,true);
+  }else emo(content,0,-2,24);
+  ctx.restore();
+  if(c.phase==='pay')txt('收钱',bx,by+38,12,'#ffd24a','center',F_KAI,true);
+}
+/* ============ 白展堂特效 ============ */
+function drawBaiDash(){
+  if(G.baiAnim<0)return;
+  const t=G.baiAnim,x=lerp(-80,W+80,t*t*(3-2*t));
+  ctx.save();ctx.globalAlpha=.9-t*.4;
+  ctx.strokeStyle='rgba(220,240,255,.7)';ctx.lineWidth=3;
+  for(let i=1;i<=3;i++){ctx.globalAlpha=(.5-t*.3)/i;
+    ctx.beginPath();ctx.moveTo(x-40*i-20,330+i*8-40);ctx.lineTo(x-40*i,330+i*8);ctx.stroke()}
+  ctx.globalAlpha=1;
+  ctx.translate(x,330);ctx.rotate(.1);
+  ell(0,2,22,7,'rgba(0,0,0,.2)');
+  ctx.fillStyle='#cfd6de';
+  ctx.beginPath();ctx.moveTo(-14,-46);ctx.quadraticCurveTo(-20,-22,-18,-13);
+  ctx.lineTo(18,-13);ctx.quadraticCurveTo(20,-22,14,-46);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#cfd6de';ctx.lineWidth=6;ctx.lineCap='round';
+  line(10,-40,34,-52);line(-10,-40,-20,-22);
+  ell(0,-56,13,13,'#eec39a');
+  ctx.fillStyle='#33302c';ctx.beginPath();ctx.arc(0,-58,13,Math.PI*.9,Math.PI*2.1);ctx.fill();
+  ell(38,-58,4,4,'#ffe9a8');
+  ctx.strokeStyle='#fff';ctx.lineWidth=2.5;line(30,-54,44,-62);
+  ctx.restore();
+}
+/* ============ HUD ============ */
+function baiBtnPos(){return{x:898,y:620,r:36}}
+function drawHUD(){
+  ctx.fillStyle='rgba(38,22,10,.92)';ctx.fillRect(0,0,W,44);
+  ctx.fillStyle='#d8b25a';ctx.fillRect(0,43,W,2);
+  txt('第'+G.level+'天',60,22,20,'#ffe9b0','center',F_KAI,true);
+  // 银两进度
+  const bw=280,ratio=clamp(G.income/G.cfg.target,0,1);
+  txt('银子',168,22,15,'#e8c98a','left');
+  ctx.fillStyle='#1d1008';rr(205,10,bw,24,10);ctx.fill();
+  const gr=ctx.createLinearGradient(207,0,207+bw,0);
+  gr.addColorStop(0,'#c9932a');gr.addColorStop(1,'#ffd24a');
+  ctx.fillStyle=gr;rr(207,12,Math.max(4,bw*ratio-4),20,8);ctx.fill();
+  txt(G.income+' / '+G.cfg.target+' 两',205+bw/2,22,14,ratio>=1?'#fff':'#ffe9b0');
+  // 时间
+  const tl=Math.ceil(G.timeLeft),mm=String(Math.floor(tl/60)).padStart(2,'0'),ss=String(tl%60).padStart(2,'0');
+  const urgent=tl<=15&&tl>0&&Math.sin(T*8)>0;
+  const tstr=G.cfg.endless?'♾ 第'+(G.level-20)+'天':(G.closing?'打烊中…':'⏳ '+mm+':'+ss);
+  txt(tstr,530,22,20,urgent||G.closing?'#ff6b5a':'#ffe9b0','center',F_KAI,true);
+  // 连击
+  if(G.combo>=2)txt('🔥x'+G.combo,625,22,16,'#ffb347','center',F_KAI,true);
+  // buff提示
+  let bt=null;
+  if(G.buff.tip>0)bt='🧺 小费x2 '+Math.ceil(G.buff.tip)+'s';
+  else if(G.buff.market>0)bt='🥬 小费+50% '+Math.ceil(G.buff.market)+'s';
+  else if(G.buff.cook>0)bt='🔥 做菜x2 '+Math.ceil(G.buff.cook)+'s';
+  if(bt)txt(bt,630,G.combo>=2?38:22,12,'#ffd873');
+  // 加速按钮
+  const shov=hover&&hover.kind==='btn'&&hover.ref==='speed';
+  ctx.fillStyle=shov||speedMul>1?'rgba(150,90,20,.95)':'rgba(70,44,20,.95)';
+  rr(686,9,56,26,7);ctx.fill();
+  ctx.strokeStyle=speedMul>1?'#ffd873':'#d8b25a';ctx.lineWidth=1.5;rr(686,9,56,26,7);ctx.stroke();
+  txt('⏩ '+speedMul+'x',714,22,14,'#ffe9c8','center',F_KAI,true);
+  // 小按钮
+  drawIconBtn(790,22,'⏸');drawIconBtn(842,22,muted?'🔇':'🔊');
+  // 点穴手按钮
+  if(upg.bai>0){
+    const b=baiBtnPos(),ready=G.baiCd<=0;
+    ctx.fillStyle=ready?'rgba(60,90,140,.95)':'rgba(40,34,26,.9)';
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.fill();
+    ctx.strokeStyle=ready?'#9fd0ff':'#6b5a42';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.stroke();
+    if(!ready){ctx.strokeStyle='rgba(20,12,6,.75)';ctx.lineWidth=6;
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r-3,-Math.PI/2,-Math.PI/2+TAU*(G.baiCd/25));ctx.stroke()}
+    emo('🖐️',b.x,b.y-7,26);
+    txt('点穴手',b.x,b.y+17,13,ready?'#cfe8ff':'#8a7a62','center',F_KAI,true);
+    if(ready&&Math.sin(T*4)>0){ctx.strokeStyle='rgba(160,210,255,.5)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r+5,0,TAU);ctx.stroke()}
+  }
+  // 掌柜鼓舞按钮(自带)
+  {
+    const b={x:836,y:620,r:36},ready=G.rallyCd<=0;
+    ctx.fillStyle=ready?'rgba(170,110,20,.95)':'rgba(40,34,26,.9)';
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.fill();
+    ctx.strokeStyle=ready?'#ffd873':'#6b5a42';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.stroke();
+    if(!ready){ctx.strokeStyle='rgba(20,12,6,.75)';ctx.lineWidth=6;
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r-3,-Math.PI/2,-Math.PI/2+TAU*(G.rallyCd/40));ctx.stroke()}
+    emo('💫',b.x,b.y-7,26);
+    txt('鼓舞',b.x,b.y+17,13,ready?'#ffe9b0':'#8a7a62','center',F_KAI,true);
+    if((G.rally||0)>0)txt('士气+ '+Math.ceil(G.rally)+'s',b.x,b.y-b.r-10,12,'#ffd873');
+    else if(ready&&Math.sin(T*4)>0){ctx.strokeStyle='rgba(255,216,115,.5)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r+5,0,TAU);ctx.stroke()}
+  }
+  // 引导横幅
+  if(G.hintT>0&&G.hintTxt){
+    const a=Math.min(1,G.hintT,.4)*Math.min(1,(4.2-G.hintT)*4+1);
+    ctx.globalAlpha=clamp(a,0,1);
+    ctx.fillStyle='rgba(30,16,6,.88)';rr(W/2-280,166,560,30,10);ctx.fill();
+    ctx.strokeStyle='rgba(255,215,120,.5)';ctx.lineWidth=1.5;rr(W/2-280,166,560,30,10);ctx.stroke();
+    txt(G.hintTxt,W/2,181,15,'#ffe9b0');
+    ctx.globalAlpha=1;
+  }
+}
+function drawIconBtn(x,y,icon){
+  ctx.fillStyle='rgba(70,44,20,.95)';rr(x-19,y-16,38,32,8);ctx.fill();
+  ctx.strokeStyle='#d8b25a';ctx.lineWidth=1.5;rr(x-19,y-16,38,32,8);ctx.stroke();
+  emo(icon,x,y,17);
+}
+/* ============ 场景绘制 ============ */
+function drawPlayScene(){
+  ctx.save();
+  if(G.shake>0)ctx.translate(rand(-G.shake,G.shake),rand(-G.shake,G.shake));
+  drawBackdrop(true);
+  drawCounterDishes();
+  const ents=[];
+  for(const t of G.tables)ents.push({y:t.y+26,d:()=>drawTable(t)});
+  for(const c of G.custs)if(c.state!=='seated')ents.push({y:c.y,d:()=>drawCust(c)});
+  const seated=G.custs.filter(c=>c.state==='seated');
+  for(const c of seated)ents.push({y:c.y-24,d:()=>drawCust(c)});
+  ents.push({y:G.P.y,d:()=>drawTong()});
+  for(const r of G.runners)ents.push({y:r.y,d:()=>drawRunner(r)});
+  if(G.thief)ents.push({y:G.thief.y,d:()=>drawThief()});
+  for(const w of G.walkers)ents.push({y:w.y,d:()=>drawWalker(w)});
+  ents.sort((a,b)=>a.y-b.y);
+  for(const e of ents)e.d();
+  for(const c of seated)drawBubble(c);
+  for(const c of G.custs)if(c.state==='queue')drawBubble(c);
+  // 冰冻特效
+  if(G.freeze>0){
+    ctx.fillStyle='rgba(120,180,255,.12)';ctx.fillRect(0,0,W,H);
+    for(const c of G.custs)if(c.state==='seated'||c.state==='queue'){
+      ctx.fillStyle='rgba(140,200,255,.22)';
+      ell(c.x,c.y-40,26,46,'rgba(140,200,255,.22)');
+      emo('❄',c.x+22,c.y-92,15);
+    }
+    ctx.strokeStyle='rgba(180,220,255,'+(G.freeze*.25)+')';ctx.lineWidth=6;
+    ctx.strokeRect(3,3,W-6,H-6);
+  }
+  // 鼓舞士气特效: 金色冲击波 + 员工脚下光圈
+  if(G.rallyFx>=0){
+    const t=G.rallyFx;
+    ctx.strokeStyle='rgba(255,216,115,'+(1-t)*.9+')';
+    ctx.lineWidth=8*(1-t)+2;
+    ctx.beginPath();ctx.arc(G.rallyPx,G.rallyPy-30,40+t*400,0,TAU);ctx.stroke();
+    ctx.strokeStyle='rgba(255,240,190,'+(1-t)*.5+')';
+    ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(G.rallyPx,G.rallyPy-30,20+t*300,0,TAU);ctx.stroke();
+  }
+  if((G.rally||0)>0){
+    ctx.fillStyle='rgba(255,216,115,'+(.25+.12*Math.sin(T*6))+')';
+    for(const r of G.runners)ell(r.x,r.y+2,26,9,null),ctx.fill();
+    ell(G.P.x,G.P.y+2,28,10,null),ctx.fill();
+  }
+  drawBaiDash();
+  drawFx();
+  ctx.restore();
+  // 随机事件横幅
+  if(G.eventBanner){
+    const a=clamp(G.eventBanner.t,0,.4)*2.5;
+    ctx.globalAlpha=clamp(a,0,1);
+    ctx.font='bold 19px '+F_KAI;
+    const w2=Math.max(300,ctx.measureText(G.eventBanner.txt).width+60);
+    ctx.fillStyle='rgba(120,60,10,.88)';rr(W/2-w2/2,62,w2,38,12);ctx.fill();
+    ctx.strokeStyle='#ffd873';ctx.lineWidth=2;rr(W/2-w2/2,62,w2,38,12);ctx.stroke();
+    txt(G.eventBanner.txt,W/2,81,19,'#ffe9a8','center',F_KAI,true);
+    ctx.globalAlpha=1;
+  }
+  drawHUD();
+}
+/* ============ UI 按钮 ============ */
+function drawBtn(x,y,w,h,label,en,emoIcon,id){
+  const bid=id||label;
+  const hov=hover&&hover.kind==='btn'&&hover.ref===bid;
+  const on=en!==false;
+  ctx.save();
+  if(hov&&on){ctx.translate(x,y);ctx.scale(1.04,1.04);ctx.translate(-x,-y)}
+  const g=ctx.createLinearGradient(x,y,x,y+h);
+  if(on){g.addColorStop(0,'#c0452c');g.addColorStop(1,'#8e2f1c')}else{g.addColorStop(0,'#6b6257');g.addColorStop(1,'#4c463e')}
+  ctx.fillStyle=g;rr(x,y,w,h,h/2.6);ctx.fill();
+  ctx.strokeStyle=on?'#ffd873':'#9a9082';ctx.lineWidth=2.5;rr(x,y,w,h,h/2.6);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.16)';rr(x+5,y+4,w-10,h/2.6,h/4);ctx.fill();
+  if(emoIcon){emo(emoIcon,x+h/2,y+h/2-1,h*.42);txt(label,x+h/2+h*.42+8,y+h/2,h*.42,'#ffe9c8','center',F_KAI,true)}
+  else txt(label,x+w/2,y+h/2,h*.44,on?'#ffe9c8':'#b8b0a4','center',F_KAI,true);
+  ctx.restore();
+  frameBtns.push({x:x-6,y:y-6,w:w+12,h:h+12,id:bid,cb:null});
+}
+function panel(x,y,w,h,title){
+  ctx.fillStyle='rgba(20,10,4,.55)';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#54371c';rr(x,y,w,h,16);ctx.fill();
+  ctx.strokeStyle='#d8b25a';ctx.lineWidth=3;rr(x+7,y+7,w-14,h-14,11);ctx.stroke();
+  ctx.fillStyle='#6b421e';rr(x+7,y+7,w-14,44,10);ctx.fill();
+  if(title)txt(title,x+w/2,y+30,26,'#ffd873','center',F_KAI,true);
+}
+/* ============ 各界面 ============ */
+function drawTitle(){
+  drawBackdrop(false);
+  ctx.fillStyle='rgba(15,8,3,.5)';ctx.fillRect(0,0,W,H);
+  // 大匾
+  ctx.save();ctx.translate(W/2,190);ctx.rotate(-.02);
+  ctx.fillStyle='rgba(20,10,4,.4)';rr(-266,-76,532,152,14);ctx.fill();
+  ctx.fillStyle='#4a2f16';rr(-256,-66,512,132,12);ctx.fill();
+  ctx.strokeStyle='#ffd873';ctx.lineWidth=4;rr(-242,-52,484,104,9);ctx.stroke();
+  txt('同 福 客 栈',0,2,84,'#ffd873','center',F_KAI,true);
+  ctx.restore();
+  txt('—— 七侠镇 · 武林外传客栈经营 ——',W/2,306,22,'#ffe9b0');
+  drawLantern(W/2-330,140,Math.sin(T*1.2)*.08,1.5);
+  drawLantern(W/2+330,140,Math.sin(T*1.4+1)*.08,1.5);
+  drawBtn(W/2-130,378,260,56,'开 始 新 游 戏',true,null,'newgame');
+  drawBtn(W/2-130,448,260,50,'♾ 无尽模式 (赠400两)',true,null,'endlessdirect');
+  drawBtn(W/2-195,512,190,48,'玩 法 说 明',true,null,'tohelp');
+  drawBtn(W/2+5,512,190,48,'🏅 成 就',true,null,'toach');
+  if(best>0)txt(best>=20?'🏆 最高纪录: 已通关同福客栈!':'最高纪录: 通关第'+best+'天',W/2,582,17,'#e8c98a');
+  txt('鼠标/触屏点击操作 · 共20天+无尽模式 · 祝生意兴隆',W/2,610,14,'rgba(232,201,138,.6)');
+  for(const b of frameBtns){
+    if(b.id==='newgame')b.cb=()=>newGame();
+    else if(b.id==='endlessdirect')b.cb=()=>{
+      resetRun();RUN={earn:0,angry:0,researched:[],town:{panned:false,bought:[],panResult:null,resDone:false}};
+      bank=400;startLevel(21);state='shop'};
+    else if(b.id==='tohelp')b.cb=()=>{state='help'};
+    else if(b.id==='toach')b.cb=()=>{state='ach'};
+  }
+}
+function drawAch(){
+  drawBackdrop(false);
+  const got=achList();
+  panel(150,24,660,620,'🏅 成就 ('+got.length+'/'+ACH.length+')');
+  for(let i=0;i<ACH.length;i++){
+    const a=ACH[i],cx=i<7?170:490,cy=96+(i<7?i:i-7)*68;
+    const ok=got.includes(a.key);
+    ctx.fillStyle=ok?'rgba(60,40,10,.6)':'rgba(30,16,6,.5)';rr(cx,cy,300,60,9);ctx.fill();
+    ctx.strokeStyle=ok?'rgba(255,216,115,.6)':'rgba(120,100,70,.3)';ctx.lineWidth=1.5;rr(cx,cy,300,60,9);ctx.stroke();
+    ctx.globalAlpha=ok?1:.45;
+    emo(a.emoji,cx+27,cy+30,25);
+    txt(a.name,cx+52,cy+19,15,ok?'#ffd873':'#b8a890','left',F_KAI,true);
+    txt(a.desc,cx+52,cy+43,12,ok?'#d8c3a0':'#8a7a66','left');
+    ctx.globalAlpha=1;
+    if(ok){star(cx+278,cy+15,8,'#ffd24a')}
+  }
+  drawBtn(390,588,180,44,'返 回',true,null,'achback');
+  for(const b of frameBtns)if(b.id==='achback')b.cb=()=>{state='title'};
+}
+function drawHelp(){
+  drawBackdrop(false);
+  panel(150,50,660,570,'玩 法 说 明');
+  const L=[
+    ['1️⃣','点击排队客人带位入座(掌柜空闲时也会自动迎宾), 点"!"客人下单'],
+    ['3️⃣','李大嘴自动做菜, 做好的菜会摆到右上"出菜口"'],
+    ['4️⃣','点击出菜口的菜端起(最多2盘), 再点击点菜客人上菜'],
+    ['5️⃣','客人吃完在桌上留下银两, 点击桌子收钱并清理'],
+    ['⚠️','客人头顶红心是耐心, 耗尽会生气离店; 连续上菜有连击加成'],
+    ['🤝','雇小贝后有空桌客人自己入座, 五员工全员跑堂, 小米拉客'],
+    ['💫','掌柜空闲自动干活; R键/按钮释放「鼓舞」: 全员提速+客人耐心回升10秒'],    ['🎉','随机事件不断; 第4天起有小偷, 连点3下抓住!'],
+    ['📣','店外大街: 点击"?"路人招揽进店, 💎贵客点大单, 小推车买增益'],
+    ['🏘️','每晚可去镇上: 淘金/研发新菜(正负效果)/投资/包席15人/扩建大厅'],
+    ['🎯','共20天通关, 之后解锁无尽模式; F键或按钮加速游戏'],
+  ];
+  let y=126;
+  for(const[ic,t]of L){
+    emo(ic,196,y,19);txt(t,224,y,14.5,'#f2e2c0','left');y+=38;
+  }
+  drawBtn(390,560,180,48,'返 回',true,null,'helpback');
+  for(const b of frameBtns)if(b.id==='helpback')b.cb=()=>{state='title'};
+}
+function drawIntro(){
+  drawPlaySceneBg();
+  panel(200,140,560,400,'');
+  txt(G.cfg.endless?'♾ 无尽模式':'第 '+G.level+' 天',W/2,198,42,'#ffd873','center',F_KAI,true);
+  const story=(G.cfg.story||'').split('\n');
+  let y=256;for(const s of story){txt(s,W/2,y,18,'#f2e2c0');y+=30}
+  ctx.strokeStyle='rgba(216,178,90,.4)';ctx.lineWidth=1;line(280,y+4,680,y+4);y+=34;
+  txt(G.cfg.endless?'🎯 无时间限制 · 生气满8位打烊':'🎯 今日目标: '+G.cfg.target+' 两    ⏳ 时长: '+Math.round(G.cfg.time/60)+'分钟',W/2,y,19,'#ffe9b0');y+=30;
+  txt('🪑 客桌 ×'+G.tables.length+'    🔥 灶台 ×'+G.stoves.length,W/2,y,17,'#e8c98a');y+=27;
+  txt('👥 今日客人: '+Object.keys(G.cfg.pool).map(k=>CTYPES[k].name).join('、'),W/2,y,14.5,'#e8c98a');
+  drawBtn(W/2-110,464,220,54,'🔔 开张!',true,null,'startday');
+  for(const b of frameBtns)if(b.id==='startday')b.cb=()=>{state='play';G.t=0;sfx.gong()};
+}
+function drawPlaySceneBg(){drawBackdrop(true);
+  const ents=[];for(const t of G.tables)ents.push({y:t.y+26,d:()=>drawTable(t)});
+  for(const r of G.runners)ents.push({y:r.y,d:()=>drawRunner(r)});
+  ents.push({y:G.P.y,d:()=>drawTong()});ents.sort((a,b)=>a.y-b.y);for(const e of ents)e.d()}
+function drawPass(){
+  drawPlaySceneBg();
+  const ratio=G.income/G.cfg.target,stars=ratio>=1.6?3:ratio>=1.25?2:1;
+  panel(230,130,500,420,'');
+  emo('🎉',W/2,192,44);
+  txt('第 '+G.level+' 天 · 生意兴隆!',W/2,250,32,'#ffd873','center',F_KAI,true);
+  for(let i=0;i<3;i++)star(W/2-60+i*60,296,22,i<stars?'#ffd24a':'#4a3a26');
+  txt('今日收入 '+G.income+' 两 (目标 '+G.cfg.target+' 两)',W/2,342,20,'#ffe9b0');
+  txt(stars>=3?'额滴神呀! 客似云来, 财源广进!':stars>=2?'生意兴隆, 蒸蒸日上~':'总算没亏本, 明天继续加油!',W/2,376,18,'#e8c98a');
+  txt('钱柜累计 '+bank+' 两',W/2,408,16,'#c9a36a');
+  if(G.level>=20){
+    drawBtn(W/2-110,460,220,54,'🏆 查看结局',true,null,'passnext');
+  }else{
+    drawBtn(268,460,200,54,'🛒 前往商铺',true,null,'passnext');
+    drawBtn(492,460,200,54,'🏘️ 镇上夜市',true,null,'passtown');
+  }
+  for(const b of frameBtns){
+    if(b.id==='passnext')b.cb=()=>{if(G.level>=20)state='complete';else state='shop'};
+    if(b.id==='passtown')b.cb=()=>{state='town'};
+  }
+}
+function drawFail(){
+  drawPlaySceneBg();
+  panel(230,150,500,390,'');
+  emo(G.cfg.endless?'♾':'😢',W/2,210,46);
+  txt(G.cfg.endless?'累倒啦! 歇口气整备一下~':'今天亏本了……',W/2,274,34,'#ff8f86','center',F_KAI,true);
+  if(G.cfg.endless){
+    txt('♾ 第'+(G.level-20)+'天 · 累计挣 '+G.income+' 两 · 服务 '+G.served+' 份',W/2,326,19,'#f2e2c0');
+    txt(G.income>=300?'佟湘玉: 额滴神呀, 数钱数到手抽筋!':G.income>=150?'小郭: 这才哪到哪, 我还能撑!':'白展堂: 要不……还是跑路吧。',W/2,360,17,'#e8c98a');
+  }else{
+    txt('只挣了 '+G.income+' 两, 差 '+(G.cfg.target-G.income)+' 两',W/2,326,19,'#f2e2c0');
+    txt('佟湘玉: 额滴神呀! 连本钱都赚不回来……',W/2,360,17,'#e8c98a');
+  }
+  drawBtn(W/2-190,426,180,50,G.cfg.endless?'🛒 商铺整备':'再试一天',true,null,'retry');
+  drawBtn(W/2+10,426,180,50,'回到标题',true,null,'totitle');
+  for(const b of frameBtns){
+    if(b.id==='retry')b.cb=()=>{if(G.cfg.endless)state='shop';else startLevel(G.level)};
+    if(b.id==='totitle')b.cb=()=>{state='title'};
+  }
+}
+function drawShop(){
+  drawBackdrop(false);
+  panel(110,20,740,610,'🛒 同福商铺');
+  txt('钱柜: '+bank+' 两',765,56,19,'#ffd24a','center',F_KAI,true);
+  if(G.cfg.endless)txt('♾ 规则: 无限时长 · 生气满8位打烊 · 败后可整备续战(收入保留)',480,88,13,'#ffd873');
+  for(let i=0;i<SHOP.length;i++){
+    const s=SHOP[i];
+    const cx=i<10?126:458,cy=98+(i%10)*49;
+    const lv=upg[s.key],maxed=lv>=s.max,cost=s.cost[lv];
+    const dep=s.key==='gtrain'?upg.guo>0:s.key==='btrain'?upg.bai>0:s.key==='wtrain'?upg.wushuang>0:s.key==='xtrain'?upg.xiaobei>0:s.key==='ctrain'?upg.xiucai>0:s.key==='mtrain'?upg.xiaomi>0:s.key==='etrain'?upg.xing>0:s.key==='strain'?upg.san>0:true;
+    const can=!maxed&&bank>=cost&&dep;
+    ctx.fillStyle='rgba(30,16,6,.6)';rr(cx,cy,316,43,8);ctx.fill();
+    ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(cx,cy,316,43,8);ctx.stroke();
+    emo(s.emoji,cx+19,cy+21,18);
+    txt(s.name,cx+37,cy+13,12,'#ffe9c8','left',F_KAI,true);
+    let pips='';
+    for(let j=0;j<s.max;j++)pips+=j<lv?'●':'○';
+    txt(s.desc+' '+pips+(dep?'':' (未雇佣)'),cx+37,cy+31,9.5,dep?'#d8c3a0':'#a08060','left');
+    if(maxed)txt('已满级',cx+262,cy+21,12,'#9a9082','center',F_KAI,true);
+    else drawBtn(cx+212,cy+5,98,33,cost+' 两',can,null,'shop_'+s.key);
+  }
+  drawBtn(240,594,220,40,'🏘️ 镇上夜市',true,null,'totown');
+  drawBtn(500,594,220,40,G.cfg.endless?'♾ 开战 / 接着干':'🌅 开始第 '+(G.level+1)+' 天',true,null,'nextday');
+  for(const b of frameBtns){
+    if(b.id&&b.id.indexOf('shop_')===0){
+      const s=SHOP.find(it=>it.key===b.id.slice(5));
+      b.cb=()=>{const lv=upg[s.key];if(lv>=s.max)return;
+        const dep=s.key==='gtrain'?upg.guo>0:s.key==='btrain'?upg.bai>0:s.key==='wtrain'?upg.wushuang>0:s.key==='xtrain'?upg.xiaobei>0:s.key==='ctrain'?upg.xiucai>0:s.key==='mtrain'?upg.xiaomi>0:s.key==='etrain'?upg.xing>0:s.key==='strain'?upg.san>0:true;
+        const cost=s.cost[lv];
+        if(dep&&bank>=cost){bank-=cost;upg[s.key]++;sfx.coin();
+          if(upg.bai&&upg.guo&&upg.wushuang&&upg.xiaobei&&upg.xiucai)unlockAch('team')}};
+    }else if(b.id==='nextday')b.cb=()=>{if(G.cfg.endless)resumeEndless();else startLevel(G.level+1)};
+    else if(b.id==='totown')b.cb=()=>{state='town'};
+  }
+}
+function drawTown(){
+  drawBackdrop(false);
+  panel(110,20,740,610,'🏘️ 七侠镇 · 打烊之后');
+  txt('钱柜: '+bank+' 两',765,56,19,'#ffd24a','center',F_KAI,true);
+  const tw=RUN.town;
+  // 十八里铺淘金
+  ctx.fillStyle='rgba(30,16,6,.6)';rr(130,100,316,124,10);ctx.fill();
+  ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(130,100,316,124,10);ctx.stroke();
+  emo('⛏️',164,134,26);
+  txt('十八里铺淘金',194,124,15,'#ffe9c8','left',F_KAI,true);
+  txt('花100两碰运气·每晚一次',194,146,11.5,'#d8c3a0','left');
+  txt('回35两/赚150/金矿300两',194,164,11.5,'#c9a36a','left');
+  if(!tw.panned)drawBtn(226,180,110,34,'100 两',bank>=100,null,'pan');
+  else txt('(今晚已挖过)',286,186,12,'#9a9082');
+  if(tw.panResult)txt(tw.panResult,286,212,12.5,'#ffd24a','center',F_KAI,true);
+  // 大厅扩建
+  ctx.fillStyle='rgba(30,16,6,.6)';rr(470,100,316,124,10);ctx.fill();
+  ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(470,100,316,124,10);ctx.stroke();
+  emo('🏗️',504,134,26);
+  txt('大厅扩建',534,124,15,'#ffe9c8','left',F_KAI,true);
+  txt('每级今后每天多摆3张桌',534,146,11.5,'#d8c3a0','left');
+  txt('已扩 '+upg.hall+' 级 (+'+upg.hall*3+' 桌)',534,164,11.5,'#c9a36a','left');
+  const hcost=[400,900,2000][upg.hall];
+  if(upg.hall<3)drawBtn(576,180,100,34,hcost+' 两',bank>=hcost,null,'hall');
+  else txt('已满级',626,186,14,'#9a9082','center',F_KAI,true);
+  // 包席预约(15人大席)
+  ctx.fillStyle='rgba(30,16,6,.6)';rr(130,236,316,124,10);ctx.fill();
+  ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(130,236,316,124,10);ctx.stroke();
+  emo('🎊',164,270,26);
+  txt('包席预约·15人大席',194,260,15,'#ffe9c8','left',F_KAI,true);
+  txt('花400两订明日开席大单:',194,282,11.5,'#d8c3a0','left');
+  txt('3贵客领队+12随行组团上门!',194,300,11.5,'#c9a36a','left');
+  if(!nextBanquet)drawBtn(226,316,110,34,'400 两',bank>=400,null,'banquet');
+  else txt('✓ 已预订',286,322,14,'#9fe3af','center',F_KAI,true);
+  // 后厨研发新菜
+  ctx.fillStyle='rgba(30,16,6,.6)';rr(470,236,316,124,10);ctx.fill();
+  ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(470,236,316,124,10);ctx.stroke();
+  emo('🍳',504,270,26);
+  txt('大嘴研制新菜',534,260,15,'#ffe9c8','left',F_KAI,true);
+  const resLeft=NEW_DISH_KEYS.filter(k=>!(RUN.researched||[]).includes(k)).length;
+  txt('花150两随机研发一道新菜',534,282,11.5,'#d8c3a0','left');
+  if(tw.resResult){
+    txt(tw.resResult.emoji+' '+tw.resResult.name+'  '+(RUN.researched.length+'/8'),534,300,11.5,'#ffd873','left');
+    txt(tw.resResult.desc,534,318,10.5,'#c9a36a','left');
+  }else txt('正负效果都有·永久进菜单 '+RUN.researched.length+'/8',534,300,11.5,'#c9a36a','left');
+  if(resLeft>0&&!tw.resDone)drawBtn(566,316,110,34,'150 两',bank>=150,null,'research');
+  else if(resLeft<=0)txt('全部研完',626,322,13,'#9a9082','center',F_KAI,true);
+  else txt('(今晚已研)',626,322,11,'#9a9082');
+  // 镇上事件(每晚随机两个·横条)
+  if(!townOpts){
+    const pool=TOWN_EVENTS.slice();
+    townOpts=[];
+    for(let i=0;i<2;i++)townOpts.push(pool.splice(ri(0,pool.length-1),1)[0]);
+  }
+  townOpts.forEach((ev,idx)=>{
+    const cy=372+idx*94;
+    ctx.fillStyle='rgba(30,16,6,.6)';rr(130,cy,656,86,10);ctx.fill();
+    ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(130,cy,656,86,10);ctx.stroke();
+    emo(ev.emoji,166,cy+43,28);
+    txt(ev.name,198,cy+28,15,'#ffe9c8','left',F_KAI,true);
+    txt(ev.desc+' · 明日生效·每晚限一次',198,cy+56,11.5,'#d8c3a0','left');
+    const bought=tw.bought.includes(ev.key);
+    if(bought)txt('✓ 已预订',656,cy+43,14,'#9fe3af','center',F_KAI,true);
+    else drawBtn(600,cy+25,110,36,ev.cost+' 两',bank>=ev.cost,null,'town_'+ev.key);
+  });
+  // 明日安排一行
+  const bf=[];
+  if(nextBuffs.flow)bf.push('客流+15%');if(nextBuffs.price)bf.push('菜价+15%');
+  if(nextBuffs.pat)bf.push('耐心+20%');if(nextBuffs.tip)bf.push('小费+15%');
+  if(nextBuffs.rush)bf.push('开场客流x2');if(nextBanquet)bf.push('包席x15人');
+  if(RUN.researched.length)bf.push('新菜x'+RUN.researched.length);
+  txt(bf.length?'🌙 明日: '+bf.join(' · '):'🌙 今晚可淘金/研发新菜/投资/包席, 为明天铺路',480,568,13.5,'#ffd873');
+  drawBtn(240,586,220,44,'🛒 去商铺',true,null,'toshop');
+  drawBtn(500,586,220,44,G.cfg.endless?'♾ 开战 / 接着干':'🌅 开始第 '+(G.level+1)+' 天',true,null,'nextday2');
+  for(const b of frameBtns){
+    if(b.id==='pan')b.cb=()=>{
+      if(RUN.town.panned||bank<100)return;
+      bank-=100;RUN.town.panned=true;
+      const r=Math.random();
+      if(r<.5){bank+=35;RUN.town.panResult='刨了一晚上, 只淘回35两……'}
+      else if(r<.85){bank+=150;RUN.town.panResult='小赚一笔! 净赚50两!'}
+      else{bank+=300;RUN.town.panResult='大金矿! 100两翻成300两!';unlockAch('gold')}
+      sfx.coin();
+    };
+    else if(b.id==='hall')b.cb=()=>{
+      const c=[400,900,2000][upg.hall];
+      if(upg.hall>=3||bank<c)return;
+      bank-=c;upg.hall++;sfx.coin();
+    };
+    else if(b.id==='banquet')b.cb=()=>{
+      if(nextBanquet||bank<400)return;
+      bank-=400;nextBanquet=true;sfx.coin();
+    };
+    else if(b.id==='research')b.cb=()=>{
+      if(RUN.town.resDone||bank<150)return;
+      const pool=NEW_DISH_KEYS.filter(k=>!(RUN.researched||[]).includes(k));
+      if(!pool.length)return;
+      bank-=150;RUN.town.resDone=true;
+      const k=pool[ri(0,pool.length-1)];
+      RUN.researched.push(k);
+      RUN.town.resResult=DISHES[k];
+      sfx.ready();
+    };
+    else if(b.id&&b.id.indexOf('town_')===0){
+      const ev=TOWN_EVENTS.find(e=>e.key===b.id.slice(5));
+      b.cb=()=>{
+        if(RUN.town.bought.includes(ev.key)||bank<ev.cost)return;
+        bank-=ev.cost;RUN.town.bought.push(ev.key);
+        nextBuffs[ev.key]=1;sfx.coin();
+      };
+    }
+    else if(b.id==='toshop')b.cb=()=>{state='shop'};
+    else if(b.id==='nextday2')b.cb=()=>{if(G.cfg.endless)resumeEndless();else startLevel(G.level+1)};
+  }
+}
+function drawComplete(){
+  drawBackdrop(false);
+  // 烟花
+  for(let k=0;k<4;k++){
+    const seed=Math.floor(T+k*.6),ph=(T-seed)/1.1;
+    if(ph<1){const fx=140+((seed*137)%680),fy=70+((seed*89)%140),col=['#ff6b5a','#ffd24a','#7fd4ff','#e3543e'][k%4];
+      for(let i=0;i<14;i++){const a=i/14*TAU,r=ph*110;
+        ctx.globalAlpha=(1-ph)*.9;star(fx+Math.cos(a)*r,fy+Math.sin(a)*r*.7,5+3*(1-ph),col)}
+      ctx.globalAlpha=1}
+  }
+  panel(180,150,600,390,'');
+  emo('🏮',W/2,210,46);
+  txt('通 关 !',W/2,272,46,'#ffd873','center',F_KAI,true);
+  txt('二十天经营, 同福客栈名扬七侠镇!',W/2,330,20,'#ffe9b0');
+  txt('二十天总营业额: '+RUN.earn+' 两    生气离店: '+RUN.angry+' 位',W/2,370,17,'#e8c98a');
+  txt(RUN.angry===0?'🎉 完美服务! 江湖第一好口碑!':RUN.angry<8?'口碑不错, 回头客越来越多~':'下次让客人少生点气哟~',W/2,402,16,'#c9a36a');
+  drawBtn(195,450,145,50,'再来一局',true,null,'playagain');
+  drawBtn(365,450,190,50,'♾ 无尽模式',true,null,'endless');
+  drawBtn(580,450,145,50,'回到标题',true,null,'totitle2');
+  for(const b of frameBtns){
+    if(b.id==='playagain')b.cb=()=>newGame();
+    if(b.id==='endless')b.cb=()=>startLevel(21);
+    if(b.id==='totitle2')b.cb=()=>{state='title'};
+  }
+}
+function drawPauseOverlay(){
+  ctx.fillStyle='rgba(10,5,2,.6)';ctx.fillRect(0,0,W,H);
+  panel(330,220,300,250,'暂 停');
+  drawBtn(360,296,240,46,'继 续',true,null,'resume');
+  drawBtn(360,352,240,46,'重新本关',true,null,'retryL');
+  drawBtn(360,408,240,46,'回到标题',true,null,'toTitle2');
+  for(const b of frameBtns){
+    if(b.id==='resume')b.cb=()=>{paused=false};
+    if(b.id==='retryL')b.cb=()=>startLevel(G.level);
+    if(b.id==='toTitle2')b.cb=()=>{state='title';paused=false};
+  }
+}
+/* ============ 悬停/点击 ============ */
+function computeHover(){
+  hover=null;
+  if(state==='play'&&!paused){
+    if((mouse.x>=771&&mouse.x<=809||mouse.x>=823&&mouse.x<=861)&&mouse.y>=6&&mouse.y<=38){hover={kind:'btn',ref:'hud'};return}
+    if(mouse.x>=686&&mouse.x<=742&&mouse.y>=9&&mouse.y<=35){hover={kind:'btn',ref:'speed'};return}
+    if(G.thief&&dist(mouse.x,mouse.y,G.thief.x,G.thief.y-30)<44){hover={kind:'thief'};return}
+    for(const w of G.walkers)if(w.type!=='pass'&&dist(mouse.x,mouse.y,w.x,w.y-32)<40){hover={kind:'walker',ref:w};return}
+    for(const b of frameBtns)if(mouse.x>=b.x&&mouse.x<=b.x+b.w&&mouse.y>=b.y&&mouse.y<=b.y+b.h){hover={kind:'btn',ref:b.id};return}
+    if(dist(mouse.x,mouse.y,836,620)<42){hover={kind:'btn',ref:'rally'};return}
+    if(upg.bai>0){const b=baiBtnPos();if(dist(mouse.x,mouse.y,b.x,b.y)<b.r+6){hover={kind:'btn',ref:'bai'};return}}
+    for(let i=0;i<G.counter.length;i++){const p=counterPos(i);
+      if(dist(mouse.x,mouse.y,p.x,p.y-8)<30){hover={kind:'dish',ref:G.counter[i]};return}}
+    for(const c of G.custs){
+      if(dist(mouse.x,mouse.y,c.x,c.y-40)<34){
+        if(c.state==='queue'||(c.state==='seated'&&c.phase==='order')){hover={kind:'cust',ref:c};return}
+        if(c.state==='seated'&&c.phase==='wait'){hover={kind:'cust',ref:c};return}
+      }}
+    for(const t of G.tables)if(t.money>0&&dist(mouse.x,mouse.y,t.x,t.y)<56){hover={kind:'table',ref:t};return}
+  }else{
+    for(const b of frameBtns)if(mouse.x>=b.x&&mouse.x<=b.x+b.w&&mouse.y>=b.y&&mouse.y<=b.y+b.h){hover={kind:'btn',ref:b.id};return}
+  }
+}
+function playClick(p){
+  const P=G.P;
+  for(let i=0;i<G.counter.length;i++){const cp=counterPos(i);
+    if(dist(p.x,p.y,cp.x,cp.y-8)<30){queueAction({t:'pick',it:G.counter[i]});return}}
+  for(const c of G.custs){
+    if(dist(p.x,p.y,c.x,c.y-40)<34){
+      if(c.state==='queue'){queueAction({t:'seat',cust:c,step:0});return}
+      if(c.state==='seated'&&c.phase==='order'){queueAction({t:'order',cust:c});return}
+      if(c.state==='seated'&&c.phase==='wait'){
+        if(P.carrying.some(it=>it.cust===c)||P.queue.some(a=>a.t==='pick'&&a.it&&a.it.cust===c)){
+          queueAction({t:'serve',cust:c});return}
+        if(P.carrying.length){addFloat(c.x,c.y-98,'手上是别桌的菜~','#ffae42');return}
+        addFloat(c.x,c.y-98,'菜还没做好呢~','#ffae42');return;
+      }
+    }
+  }
+  for(const t of G.tables)if(t.money>0&&dist(p.x,p.y,t.x,t.y)<56){queueAction({t:'collect',t2:t});return}
+}
+function onDown(p){
+  if(state==='play'&&!paused){
+    if(dist(p.x,p.y,836,620)<42){useRally();return}
+    if(upg.bai>0){const b=baiBtnPos();if(dist(p.x,p.y,b.x,b.y)<b.r+6){useBai();return}}
+    if(p.x>=686&&p.x<=742&&p.y>=9&&p.y<=35){speedMul=speedMul>=5?1:speedMul+1;sfx.click();return}
+    if(p.x>=771&&p.x<=809&&p.y>=6&&p.y<=38){paused=true;sfx.click();return}
+    if(p.x>=823&&p.x<=861&&p.y>=6&&p.y<=38){muted=!muted;localStorage.setItem('tfkz_mute',muted?'1':'0');sfx.click();return}
+    if(G.thief&&dist(p.x,p.y,G.thief.x,G.thief.y-30)<44){
+      G.thief.hp--;G.thief.stun=.7;sfx.serve();
+      addFloat(G.thief.x,G.thief.y-84,'打!','#ff6b5a',22);
+      starParts(G.thief.x,G.thief.y-40);
+      if(G.thief.hp<=0)koThief(false);
+      return;
+    }
+    for(const w of G.walkers){
+      if(dist(p.x,p.y,w.x,w.y-32)<40){
+        if(w.type==='vendor')buyVendor(w);
+        else if(w.type==='pass')addFloat(w.x,w.y-76,'只是路过~','#bbb');
+        else lure(w);
+        return;
+      }
+    }
+    playClick(p);return;
+  }
+  for(const b of frameBtns){
+    if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h&&b.cb){sfx.click();b.cb();return}
+  }
+}
+/* ============ 主循环 ============ */
+function draw(){
+  frameBtns=[];
+  if(state==='title')drawTitle();
+  else if(state==='help')drawHelp();
+  else if(state==='ach')drawAch();
+  else if(state==='intro')drawIntro();
+  else if(state==='play'){
+    drawPlayScene();
+    if(paused)drawPauseOverlay();
+    else{ // 需要重画一次非暂停下的按钮命中区域由 computeHover 处理
+    }
+  }
+  else if(state==='pass')drawPass();
+  else if(state==='fail')drawFail();
+  else if(state==='shop')drawShop();
+  else if(state==='town')drawTown();
+  else if(state==='complete')drawComplete();
+  cv.style.cursor=hover?'pointer':'default';
+}
+let last=0;
+function loop(ts){
+  const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  update(dt);
+  computeHover();
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+/* ============ 输入 ============ */
+function toXY(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+cv.addEventListener('pointermove',e=>{mouse=toXY(e)});
+cv.addEventListener('pointerdown',e=>{e.preventDefault();ac();const p=toXY(e);mouse=p;onDown(p)});
+addEventListener('keydown',e=>{
+  if(e.key==='p'||e.key==='P'||e.key==='Escape'){if(state==='play'){paused=!paused;sfx.click()}}
+  if(e.key==='m'||e.key==='M'){muted=!muted;localStorage.setItem('tfkz_mute',muted?'1':'0')}
+  if(e.key==='f'||e.key==='F'){if(state==='play'){speedMul=speedMul>=5?1:speedMul+1;sfx.click()}}
+  if(e.key==='r'||e.key==='R'){if(state==='play'){useRally()}}
+});
+addEventListener('blur',()=>{if(state==='play')paused=true});
+/* 调试/测试接口 */
+window.tf={
+  get state(){return state},set state(v){state=v},
+  get paused(){return paused},set paused(v){paused=v},
+  get speedMul(){return speedMul},set speedMul(v){speedMul=v},
+  G:()=>G,RUN:()=>RUN,
+  setUpg(k,v){if(upg)upg[k]=v},setBank(v){bank=v},
+  spawn(){if(G&&state==='play')spawnCust()},
+  endNow(){if(G){G.timeLeft=Math.min(G.timeLeft,1)}},
+  jump(n){resetRun();RUN={earn:0,angry:0,researched:[],town:{panned:false,bought:[],panResult:null}};startLevel(Math.max(1,Math.min(21,n)));if(n>=21){state='play';G.t=0}},
+  step(n,dt){for(let i=0;i<n;i++)update(dt||1/60)},
+  redraw(){draw()},
+};
+</script>
+</body>
+</html>
