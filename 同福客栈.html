@@ -139,7 +139,7 @@ function dayCfg(n){
 const SHOP=[
   {key:'furn',name:'红木雅座',desc:'双人桌换红木雅座: 小费+10% 耐心+15%',max:1,cost:[1200],emoji:'🪑'},
   {key:'knife',name:'新菜刀',desc:'做菜速度+15%/级',max:5,cost:[60,150,400,900,1800],emoji:'🔪'},
-  {key:'stove',name:'灶台扩建',desc:'灶台+1口/级(最多5口)',max:3,cost:[140,320,700],emoji:'🔥'},
+  {key:'stove',name:'灶台扩建',desc:'灶台+1口/级(最多6口)',max:4,cost:[140,320,700,1500],emoji:'🔥'},
   {key:'shoes',name:'绣花鞋',desc:'移动速度+12%/级',max:5,cost:[60,150,400,900,1800],emoji:'👡'},
   {key:'deco',name:'重新装修',desc:'客人耐心+15%/级',max:5,cost:[80,200,500,1100,2200],emoji:'🏮'},
   {key:'sign',name:'金字招牌',desc:'小费+25%/级',max:5,cost:[80,200,500,1100,2200],emoji:'✨'},
@@ -376,8 +376,8 @@ function startLevel(n){
   const tn=Math.min(TABLE_POS.length,cfg.tables+upg.hall*3);
   const seats=2,fancy=(upg.furn||0)>=1;
   for(let i=0;i<tn;i++)G.tables.push({i,x:TABLE_POS[i][0],y:TABLE_POS[i][1],seats,fancy,custs:[],money:0,plates:[]});
-  const sn=Math.min(5,cfg.stoves+(upg.stove||0));
-  for(let i=0;i<sn;i++)G.stoves.push({i,x:105+i*70,y:140,order:null,prog:0});
+  const sn=Math.min(6,cfg.stoves+(upg.stove||0));
+  for(let i=0;i<sn;i++)G.stoves.push({i,x:105+i*66,y:140,order:null,prog:0}); // 间距66: 6口时最右470, 不碰出菜口(482起)
   injuryToday=nextInjury;nextInjury=false; // 受伤要在创建员工前生效
   if(upg.bai>0)G.runners.push(mkRunner('bai'));
   if(upg.guo>0)G.runners.push(mkRunner('guo'));
