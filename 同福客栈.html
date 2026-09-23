@@ -101,34 +101,51 @@ const CTYPES={
   xiucai:{name:'吕秀才',robe:'#7a8a6a',skin:'#e8c39a',hat:'fajin',hair:'#2a2018',pat:1.8,pay:1.4,spd:100,menu:[['baiZhou',2],['suanMei',2],['guiHuaGao',2]],dishes:1,line:'知识就是力量!'},
   zhixian:{name:'娄知县',robe:'#5a4a7a',skin:'#e8c39a',hat:'wusha',hair:'#1f1c18',pat:.8,pay:3,spd:105,menu:[['foTiao',3],['nuErHong',3]],dishes:2,line:'本官今日请客!'},
 };
-const LEVELS=[
-  {time:90,target:30,tables:3,stoves:2,spawn:[8,12],pool:{beggar:3,biaoshi:2},story:'客栈开张头一天, 街坊邻居都来捧场。\n额滴神呀, 可千万别搞砸了……'},
-  {time:120,target:50,tables:4,stoves:2,spawn:[7,10],pool:{beggar:2,biaoshi:3,butou:2},story:'六扇门的燕小六带着刀来吃饭, 怪吓人的……\n刀就先押在柜上吧。'},
-  {time:120,target:75,tables:6,stoves:3,spawn:[6.5,9.5],pool:{beggar:1,biaoshi:3,butou:2,diaochan:2,xiaobei:2,xiucai:1.5},story:'怡红楼的赛貂蝉也来光顾啦,\n衡山派的莫小贝还带着吕秀才来蹭饭!'},
-  {time:150,target:110,tables:8,stoves:3,spawn:[5.5,8],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1.5,xiucai:1.5,qian:1.5},story:'钱夫人揣着私房钱来啦!\n听说这回是来消费的, 不是来砸场子的。'},
-  {time:150,target:150,tables:10,stoves:3,spawn:[5,7],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,zhixian:1},story:'小郭说她三分钟就能排山倒海,\n娄知县大人也微服私访来吃饭了!'},
-  {time:180,target:210,tables:12,stoves:4,spawn:[4.5,6.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1.2},story:'江湖第一杀手平谷一点红光临小店!\n伺候好了, 咱同福客栈就名扬江湖了!'},
-  {time:150,target:250,tables:12,stoves:4,spawn:[4.5,6.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1.5},story:'怡红楼放话要跟咱们斗菜,\n先赢下这波口碑再说!'},
-  {time:150,target:280,tables:14,stoves:4,spawn:[4.3,6.2],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1.5},story:'丐帮在咱们店开长老大会,\n小米说: 管饭, 就是自己人!'},
-  {time:165,target:320,tables:14,stoves:4,spawn:[4.2,6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.2,zhixian:1.5},story:'端午节全镇划龙舟,\n看完龙舟的客人都涌进店来啦!'},
-  {time:165,target:360,tables:16,stoves:4,spawn:[4.1,6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.2,zhixian:1.5},story:'比武招亲摆到了店门口,\n各路英雄豪杰挤破了门槛!'},
-  {time:180,target:400,tables:16,stoves:5,spawn:[4,5.8],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.2,zhixian:1.5},story:'钱庄掌柜要给咱们放贷扩店,\n先挣出个首付看看实力!'},
-  {time:180,target:450,tables:18,stoves:5,spawn:[3.9,5.7],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.5},story:'六扇门来七侠镇巡查,\n捕头们下差都来店里聚餐!'},
-  {time:195,target:500,tables:18,stoves:5,spawn:[3.9,5.6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.5},story:'中秋将至, 月饼订单爆了,\n赏月的客人也络绎不绝!'},
-  {time:195,target:550,tables:18,stoves:5,spawn:[3.8,5.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.8},story:'老白的盗圣身份差点暴露,\n江湖朋友都来捧场压惊……'},
-  {time:210,target:610,tables:20,stoves:5,spawn:[3.3,4.6],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.5,zhixian:1.8},story:'小贝当上衡山掌门,\n五岳剑盟的朋友全来道贺!'},
-  {time:210,target:670,tables:20,stoves:5,spawn:[3.1,4.4],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.8,zhixian:1.8},story:'同福客栈分号开到十八里铺,\n总店生意反而更火了!'},
-  {time:225,target:730,tables:20,stoves:5,spawn:[2.9,4.2],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.8,zhixian:2},story:'佟老爷子从汉中赶来,\n要亲眼看看女儿的产业!'},
-  {time:225,target:800,tables:20,stoves:5,spawn:[2.7,4.0],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1.8,zhixian:2},story:'郭巨侠微服私访,\n点名要尝女婿店里的佛跳墙!'},
-  {time:240,target:870,tables:20,stoves:5,spawn:[2.5,3.7],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:2,zhixian:2},story:'武林大会前夜,\n各大门派都在咱们店接风洗尘!'},
-  {time:240,target:950,tables:20,stoves:5,spawn:[2.3,3.5],pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:2,zhixian:2},story:'第二十日, 武林大会开幕!\n让全江湖看看同福客栈的排场!'},
-  {time:Infinity,target:0,tables:20,stoves:5,spawn:[2.6,4.2],endless:true,pool:{beggar:1,biaoshi:2,butou:2,diaochan:2,xiaobei:1,xiucai:1,qian:2,pinggu:1,zhixian:1},story:'客人络绎不绝, 越到后面越多!\n生气离店满8位就打烊, 看你能挣多少!'},
+const DAY_STORIES={
+  1:'客栈开张头一天, 街坊邻居都来捧场。\n额滴神呀, 可千万别搞砸了……',
+  5:'同福客栈在七侠镇小有名气了,\n老白说: 咱这叫品牌效应!',
+  10:'怡红楼放话要跟咱们斗菜,\n先把口碑做大再说!',
+  15:'丐帮在咱们店开长老大会,\n小米说: 管饭, 就是自己人!',
+  20:'同福客栈分号开到十八里铺,\n总店生意反而更火了!',
+  25:'郭巨侠微服私访,\n点名要尝女婿店里的佛跳墙!',
+  30:'三十而立! 老白想出一招:\n出门游历, 店里挂机照常开张!',
+};
+const DAY_FLAVOR=[
+  '今天天气不错, 街上人来人往。',
+  '听说镇东头有庙会, 客人该会多些。',
+  '钱掌柜捎话: 怡红楼又出新菜了。',
+  '小贝在门口摔了跤, 路人都围过来看热闹。',
+  '展堂夜里巡逻抓了个毛贼, 镇上太平了些。',
+  '秀才写了副新对联贴在门口, 众人直夸雅。',
+  '大嘴去菜市场转了一圈, 说发现了新食材。',
+  '无双把大堂擦得锃亮, 就等贵客上门。',
 ];
+function dayCfg(n){
+  const pool={beggar:3,biaoshi:2};
+  if(n>=2){pool.butou=1.5;pool.xiaobei=1.5;pool.xiucai=1}
+  if(n>=3)pool.diaochan=1.5;
+  if(n>=5)pool.qian=Math.min(2.5,.6+n*.14);
+  if(n>=8)pool.zhixian=Math.min(2,.4+n*.1);
+  if(n>=10)pool.pinggu=Math.min(2,.3+n*.12);
+  return{
+    time:120+Math.min(n,10)*6,
+    tables:Math.min(5+Math.floor((n-1)/3),14),
+    stoves:Math.min(2+Math.floor((n-1)/6),4),
+    spawn:[Math.max(3.4,8.5-n*.28),Math.max(4.8,11.5-n*.34)],
+    pool,
+    story:DAY_STORIES[n]||(DAY_FLAVOR[(n-2)%DAY_FLAVOR.length]+'\n好好经营, 生意兴隆~'),
+  };
+}
 const SHOP=[
-  {key:'knife',name:'新菜刀',desc:'做菜速度+15%/级',max:3,cost:[60,150,400],emoji:'🔪'},
-  {key:'shoes',name:'绣花鞋',desc:'移动速度+12%/级',max:3,cost:[60,150,400],emoji:'👡'},
-  {key:'deco',name:'重新装修',desc:'客人耐心+15%/级',max:3,cost:[80,200,500],emoji:'🏮'},
-  {key:'sign',name:'金字招牌',desc:'小费+25%/级',max:3,cost:[80,200,500],emoji:'✨'},
+  {key:'furn',name:'桌椅升级',desc:()=>upg.furn<1?'单人桌→双人桌, 可拼桌':'双人桌→红木雅座: 小费+10% 耐心+15%',max:2,cost:[350,1200],emoji:'🪑'},
+  {key:'knife',name:'新菜刀',desc:'做菜速度+15%/级',max:5,cost:[60,150,400,900,1800],emoji:'🔪'},
+  {key:'stove',name:'灶台扩建',desc:'灶台+1口/级(最多6口)',max:4,cost:[140,320,700,1400],emoji:'🔥'},
+  {key:'shoes',name:'绣花鞋',desc:'移动速度+12%/级',max:5,cost:[60,150,400,900,1800],emoji:'👡'},
+  {key:'deco',name:'重新装修',desc:'客人耐心+15%/级',max:5,cost:[80,200,500,1100,2200],emoji:'🏮'},
+  {key:'sign',name:'金字招牌',desc:'小费+25%/级',max:5,cost:[80,200,500,1100,2200],emoji:'✨'},
+  {key:'box',name:'双层食盒',desc:'所有跑堂多端1盘/级(上限4)',max:2,cost:[150,450],emoji:'🍱'},
+  {key:'menu',name:'菜单更新',desc:'所有菜价+10%/级',max:5,cost:[120,300,700,1400,2800],emoji:'📜'},
+  {key:'wage',name:'薪酬激励',desc:'全员(含掌柜)速度+8%/级',max:5,cost:[400,900,1800,3600,7000],emoji:'💰'},
   {key:'bai',name:'雇佣白展堂',desc:'自动跑堂·双手2盘+点穴手',max:1,cost:[120],emoji:'🖐️'},
   {key:'guo',name:'雇佣郭芙蓉',desc:'自动跑堂·单盘·便宜',max:1,cost:[150],emoji:'💪'},
   {key:'wushuang',name:'雇佣祝无双',desc:'自动跑堂·迎宾优先',max:1,cost:[130],emoji:'🌸'},
@@ -137,10 +154,6 @@ const SHOP=[
   {key:'xiaomi',name:'雇佣小米',desc:'自动上街拉客·专职揽客',max:1,cost:[200],emoji:'🥣'},
   {key:'xing',name:'雇佣邢捕头',desc:'自动跑堂·稳重·单盘',max:1,cost:[280],emoji:'🎖️'},
   {key:'san',name:'雇佣白三娘',desc:'自动跑堂·快腿·单盘',max:1,cost:[260],emoji:'🧣'},
-  {key:'box',name:'双层食盒',desc:'所有跑堂多端1盘(上限3)',max:1,cost:[150],emoji:'🍱'},
-  {key:'menu',name:'菜单更新',desc:'所有菜价+10%/级',max:3,cost:[120,300,700],emoji:'📜'},
-  {key:'stove',name:'灶台扩建',desc:'之后每天灶台+1(最多6口)',max:1,cost:[250],emoji:'🔥'},
-  {key:'apprentice',name:'后厨学徒',desc:'李大嘴收徒·再+1灶台',max:1,cost:[300],emoji:'👨‍🍳'},
   {key:'btrain',name:'葵花轻功',desc:'老白速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🌙'},
   {key:'gtrain',name:'排山倒海特训',desc:'小郭速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🌪️'},
   {key:'wtrain',name:'温柔一刀',desc:'无双速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🌸'},
@@ -149,7 +162,6 @@ const SHOP=[
   {key:'mtrain',name:'丐帮轻功',desc:'小米速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🥣'},
   {key:'etrain',name:'铁面缉拿',desc:'邢捕头速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🎖️'},
   {key:'strain',name:'盗圣身法',desc:'三娘速度+20%/级·需雇佣',max:5,cost:[100,250,600,1200,2500],emoji:'🧣'},
-  {key:'wage',name:'薪酬激励',desc:'全员(含掌柜)速度+8%/级',max:3,cost:[400,900,1800],emoji:'💰'},
 ];
 const ACH=[
   {key:'first',name:'开张大利',desc:'完成第一天',emoji:'🎉'},
@@ -157,14 +169,15 @@ const ACH=[
   {key:'combo5',name:'行云流水',desc:'单日连击达到x5',emoji:'🔥'},
   {key:'noangry',name:'宾至如归',desc:'一天内没有客人生气',emoji:'😇'},
   {key:'team',name:'掌柜天团',desc:'雇齐五位跑堂: 老白小郭无双小贝秀才',emoji:'🤝'},
-  {key:'pass6',name:'名扬七侠镇',desc:'闯过前六天',emoji:'🏆'},
-  {key:'endless200',name:'生生不息',desc:'无尽模式挣到200两',emoji:'♾️'},
+  {key:'pass6',name:'名扬七侠镇',desc:'经营满7天',emoji:'🏆'},
+  {key:'endless200',name:'财源广进',desc:'单日收入达到300两',emoji:'💸'},
   {key:'thief',name:'手疾眼快',desc:'抓住一个偷钱的小偷',emoji:'🦹'},
   {key:'dish50',name:'老饕如云',desc:'累计服务50份菜',emoji:'🍜'},
   {key:'vip',name:'伺候贵人',desc:'让娄知县满意离店',emoji:'👑'},
   {key:'lure10',name:'拉客小能手',desc:'在街上招揽10位客人',emoji:'📣'},
-  {key:'pass20',name:'二十日传奇',desc:'通关全部二十天',emoji:'🐲'},
+  {key:'pass20',name:'三十而立',desc:'经营满30天, 解锁挂机经营',emoji:'🐲'},
   {key:'gold',name:'手气爆棚',desc:'十八里铺淘金挖到大金矿',emoji:'⛏️'},
+  {key:'globetrot',name:'游遍江湖',desc:'游历过全部七个地点',emoji:'🗺️'},
 ];
 const TABLE_POS=[[425,316],[650,316],[425,420],[650,420],[200,316],[875,316],[425,222],[650,222],[425,516],[650,516],[200,420],[875,420],[200,222],[875,222],[200,516],[875,516],[425,598],[650,598],[200,598],[875,598],[150,316],[910,316],[454,368],[606,368],[150,420],[910,420],[150,222],[910,222],[150,504]];
 const DOOR={x:40,y:560};
@@ -182,11 +195,121 @@ const TOWN_EVENTS=[
   {key:'tip',name:'镖局扬名',desc:'明日小费 +15%',cost:100,emoji:'🛡️'},
   {key:'rush',name:'庙会锣鼓',desc:'明日开场60秒客流x2',cost:80,emoji:'🥁'},
 ];
+/* ============ 外出游历 · 地点与事件 ============ */
+const LOCATIONS=[
+  {key:'qixia',name:'七侠镇周边',emoji:'🏘️',days:1,cost:0,diff:1,unlock:1,desc:'本镇集市与近郊, 当日往返'},
+  {key:'zuojia',name:'左家庄',emoji:'🌾',days:1,cost:15,diff:2,unlock:2,desc:'邻村庄园, 民风淳朴'},
+  {key:'shibali',name:'十八里铺',emoji:'🏮',days:2,cost:40,diff:3,unlock:4,desc:'商埠重镇, 三教九流'},
+  {key:'hengshan',name:'衡山',emoji:'⛰️',days:3,cost:90,diff:5,unlock:8,desc:'五岳剑派之一, 小贝的地盘'},
+  {key:'hanzhong',name:'汉中',emoji:'🍜',days:4,cost:160,diff:6,unlock:15,desc:'掌柜的老家, 佟家刀法之乡'},
+  {key:'jingcheng',name:'京城',emoji:'🏯',days:5,cost:300,diff:8,unlock:25,desc:'天子脚下, 藏龙卧虎'},
+  {key:'xiyu',name:'西域',emoji:'🐪',days:6,cost:500,diff:10,unlock:40,desc:'丝路尽头, 大食波斯客商'},
+];
+/* 事件: gen=通用随机场; loc=地点专属; auto=[[权重,{t,..fx}]] 直接结算; ch=[选项] 挑战
+   fx: money(两,按难度缩放) fame dish btip/bpat/brush inj */
+const EVENTS=[
+  // —— 通用(路途) ——
+  {id:'g_cook',gen:1,e:'🍳',t:'路边帮厨',d:'路边酒肆掌柜病了, 求咱们帮衬一顿饭',auto:[[6,{t:'大勺一抡, 满堂叫好, 赚了工钱',money:14}],[3,{t:'帮厨半日, 掌柜送了些好食材',btip:1}]]},
+  {id:'g_purse',gen:1,e:'💰',t:'拾获钱袋',d:'路上捡到一只鼓鼓的钱袋',auto:[[5,{t:'物归原主, 失主重金相谢!',money:16,fame:1}],[4,{t:'四下无人……收下了(回头捐给丐帮)',money:12}]]},
+  {id:'g_rain',gen:1,e:'🌧️',t:'大雨冲桥',d:'桥被山水冲断, 只好雇船绕路',auto:[[6,{t:'多花了几钱船费',money:-8}]]},
+  {id:'g_dice',gen:1,e:'🎲',t:'猜拳赌酒',d:'客栈里有人划拳, 拉你入局',auto:[[5,{t:'手气不错, 赢了点酒钱',money:10}],[4,{t:'输了几杯酒钱',money:-7}]]},
+  {id:'g_porridge',gen:1,e:'🥣',t:'施粥行善',d:'灾民拦路, 掌柜心善要施粥',auto:[[6,{t:'善名远播, 江湖上都夸同福客栈仁义',money:-10,fame:1}]]},
+  {id:'g_wolf',gen:1,e:'🐺',t:'夜遇狼群',d:'夜里宿营, 绿光点点围了上来',ch:[
+    {l:'武比驱狼',stat:'wu',diff:0,win:{t:'一顿拳脚, 狼群四散!',money:18,fame:1},lose:{t:'被抓伤了胳膊',inj:1,money:-5}},
+    {l:'丢下干粮',pay:8,res:'狼群叼着干粮走了'}]},
+  {id:'g_couplet',gen:1,e:'📜',t:'桥头对对联',d:'桥头老先生出对: 「牛头喜得生龙角」',ch:[
+    {l:'文比应对',stat:'wen',diff:0,win:{t:'「狗嘴何曾吐象牙」满堂彩!',money:12,fame:1},lose:{t:'憋了半天对不上, 被路人笑话'}},
+    {l:'拱手认输',skip:1,res:'老先生摇头: 后生还须读书'}]},
+  {id:'g_zhaoqin',gen:1,e:'💍',t:'比武招亲',d:'大户人家搭台比武招亲, 看热闹的被推上了台',ch:[
+    {l:'武比招亲',stat:'wu',diff:1,win:{t:'一招制敌! 彩声雷动(婚没成, 赏银丰厚)',money:30,fame:2},lose:{t:'被人家大小姐一脚踹下台',inj:1}},
+    {l:'偷偷溜走',skip:1,res:'惹不起惹不起'}]},
+  {id:'g_doucai',gen:1,e:'🍜',t:'野店斗菜',d:'乡野酒肆的招牌菜不服气咱同福客栈?',ch:[
+    {l:'厨艺斗菜',stat:'chu',diff:0,win:{t:'一道菜让掌柜的心服口服!',money:20,fame:1},lose:{t:'人家祖传的手艺, 确实有两下子'}},
+    {l:'和气生财',skip:1,res:'不比不比, 和气生财'}]},
+  {id:'g_heidian',gen:1,e:'🏚️',t:'疑似黑店',d:'投宿的客栈, 蒙汗药味儿有点重',ch:[
+    {l:'文比套话',stat:'wen',diff:1,win:{t:'三言两语套出底细, 店家赔笑送客还倒找钱',money:16},lose:{t:'多说多错, 赶紧退房跑路',money:-6}},
+    {l:'武比掀桌',stat:'wu',diff:0,win:{t:'掀了迷魂桌, 救下一屋子客商, 谢礼丰厚!',money:22,fame:1},lose:{t:'寡不敌众, 破窗而逃',inj:1}},
+    {l:'装睡到天亮',skip:1,res:'一夜没敢合眼'}]},
+  {id:'g_biao',gen:1,e:'🛡️',t:'镖局求助',d:'镖局人手不够, 聘咱们护一趟短镖',ch:[
+    {l:'武比押镖',stat:'wu',diff:1,win:{t:'平安送达, 镖头塞来厚厚一封谢银!',money:26,fame:1},lose:{t:'半路失手, 赔了些镖银',money:-18}},
+    {l:'婉言推辞',skip:1,res:'挣钱重要, 小命更重要'}]},
+  // —— 七侠镇 ——
+  {id:'q_yihong',loc:'qixia',e:'🍶',t:'怡红楼斗菜',d:'怡红楼放话: 同福客栈的菜就是喂猪!',ch:[
+    {l:'厨艺应战',stat:'chu',diff:0,win:{t:'一道拿手菜, 怡红楼掌柜当场脸绿',money:18,fame:2},lose:{t:'今日状态不佳, 改日再战'}},
+    {l:'不予理会',skip:1,res:'跟她们置什么气'}]},
+  {id:'q_beggar',loc:'qixia',e:'🥣',t:'丐帮大会',d:'丐帮在镇里开长老大会, 小米引荐',auto:[[6,{t:'管了丐兄们一顿饭, 天下的叫花子都是朋友',fame:1,btip:1}]]},
+  {id:'q_county',loc:'qixia',e:'📖',t:'知县考学',d:'娄知县微服巡街, 随口考校学问',ch:[
+    {l:'文比应答',stat:'wen',diff:0,win:{t:'对答如流, 大人赏银还题了字',money:14,fame:1},lose:{t:'张口结舌, 大人拂袖而去'}},
+    {l:'低头装傻',skip:1,res:'告辞告辞'}]},
+  // —— 左家庄 ——
+  {id:'z_banquet',loc:'zuojia',e:'🎂',t:'左家庄寿宴',d:'左老爷七十大寿, 席面正缺个大厨',ch:[
+    {l:'掌勺寿宴',stat:'chu',diff:0,win:{t:'一道长寿面技惊四座, 贺礼收了不少',money:24,fame:1},lose:{t:'菜咸了点, 老爷子倒也没怪罪'}},
+    {l:'吃席就好',skip:1,res:'白吃一顿寿宴'}]},
+  {id:'z_boar',loc:'zuojia',e:'🐗',t:'野猪林',d:'近路要穿野猪林, 林里有哼哼声',ch:[
+    {l:'武比赶猪',stat:'wu',diff:1,win:{t:'赶走野猪, 猎户谢了赏钱还送了野味',money:20},lose:{t:'被野猪拱了个跟头',inj:1}},
+    {l:'绕远路',pay:6,res:'多走了半天山路'}]},
+  {id:'z_field',loc:'zuojia',e:'🌾',t:'田间对歌',d:'庄稼汉在田埂上对歌斗趣, 拉你来一段',ch:[
+    {l:'文比对歌',stat:'wen',diff:0,win:{t:'一段信天游技压全场, 获赠新麦一担',money:12,fame:1},lose:{t:'五音不全, 被笑了一路'}},
+    {l:'击掌助威',skip:1,res:'看看热闹也挺好'}]},
+  // —— 十八里铺 ——
+  {id:'s_biao',loc:'shibali',e:'🛡️',t:'镖局大单',d:'威远镖局有趟贵重镖, 点名要高手',ch:[
+    {l:'武比夺标',stat:'wu',diff:1,win:{t:'一路太平交镖, 镖头奉上重金!',money:34,fame:1},lose:{t:'途中失手, 赔了不少',money:-20}},
+    {l:'不接这单',skip:1,res:'风险太大'}]},
+  {id:'s_casino',loc:'shibali',e:'🎲',t:'赌坊手气',d:'久闻胜赌坊大名, 进去试试手气?',auto:[[4,{t:'手气爆棚! 赢了一大把',money:30}],[6,{t:'十赌九输, 折了些盘缠',money:-16}]]},
+  {id:'s_dish',loc:'shibali',e:'🦐',t:'食肆学艺',d:'名店招牌「麻辣小龙虾」, 后厨肯教两手',ch:[
+    {l:'厨艺偷师',stat:'chu',diff:0,win:{t:'偷师成功, 新菜入手!',money:8,dish:1},lose:{t:'火候没到, 学了个半吊子',money:-4}},
+    {l:'花钱拜师',pay:12,res:'奉上束脩, 师傅倾囊相授',dish:1}]},
+  // —— 衡山 ——
+  {id:'h_sword',loc:'hengshan',e:'⚔️',t:'衡山论剑',d:'衡山弟子切磋剑法, 见者有份',ch:[
+    {l:'武比论剑',stat:'wu',diff:2,win:{t:'一套剑法惊艳全场, 掌门(小贝)与有荣焉',money:30,fame:2},lose:{t:'剑法不精, 挨了几下',inj:1}},
+    {l:'观战学习',skip:1,res:'看高手过招, 受益匪浅'}]},
+  {id:'h_league',loc:'hengshan',e:'🤝',t:'五岳会盟',d:'恰逢五岳剑盟聚会, 小贝面子大',auto:[[6,{t:'江湖豪杰都对同福客栈交口称赞',fame:2,money:10}]]},
+  {id:'h_rescue',loc:'hengshan',e:'🧗',t:'山道救险',d:'山道上有香客失足挂在崖边',ch:[
+    {l:'武比攀救',stat:'wu',diff:0,win:{t:'奋身相救! 香客家人奉上厚谢',money:24,fame:1},lose:{t:'没拉住, 所幸众人合力救下'}},
+    {l:'呼救搬兵',skip:1,res:'人多力量大, 香客得救'}]},
+  // —— 汉中 ——
+  {id:'hz_blade',loc:'hanzhong',e:'🗡️',t:'佟家刀法',d:'佟家本家设擂, 切磋祖传刀法',ch:[
+    {l:'武比刀法',stat:'wu',diff:1,win:{t:'佟家刀法名不虚传! 本家老爷子重赏!',money:32,fame:2},lose:{t:'输给了表哥, 被念叨了一路',inj:1}},
+    {l:'只叙家常',skip:1,res:'亲戚见面, 分外眼熟'}]},
+  {id:'hz_home',loc:'hanzhong',e:'🏠',t:'佟老爷家宴',d:'回到娘家, 佟老爷子摆了一桌',auto:[[6,{t:'阿爹尝了咱店里的菜, 老怀大慰(还塞了银票)',money:26,fame:1,bpat:1}]]},
+  {id:'hz_noodle',loc:'hanzhong',e:'🍜',t:'汉中面艺',d:'汉中面皮冠绝秦川, 老师傅就守着摊子',ch:[
+    {l:'厨艺拜师',stat:'chu',diff:1,win:{t:'老师傅倾囊相授, 新菜入手!',money:6,dish:1},lose:{t:'和面和到天黑也没入门'}},
+    {l:'多买几份',skip:1,res:'好吃! 打包!'}]},
+  // —— 京城 ——
+  {id:'j_police',loc:'jingcheng',e:'🎖️',t:'六扇门缉盗',d:'六扇门围捕飞贼, 招募民间高手协助',ch:[
+    {l:'武比协力',stat:'wu',diff:2,win:{t:'合力擒贼! 六扇门发文表彰同福客栈',money:40,fame:2},lose:{t:'让飞贼跑了, 还崴了脚',inj:1}},
+    {l:'围观就好',skip:1,res:'六扇门的事, 少掺和'}]},
+  {id:'j_exam',loc:'jingcheng',e:'📖',t:'科举文试',d:'国子监外设了"文比擂", 对诗赢彩头',ch:[
+    {l:'文比夺魁',stat:'wen',diff:2,win:{t:'一首诗惊动考官, 彩头丰厚!',money:38,fame:2},lose:{t:'提笔忘字, 匆匆收场'}},
+    {l:'不凑热闹',skip:1,res:'功名诚可贵, 银子价更高'}]},
+  {id:'j_palace',loc:'jingcheng',e:'👑',t:'御膳房斗菜',d:'御膳房采买太监私设斗菜局, 赌注惊人',ch:[
+    {l:'厨艺斗菜',stat:'chu',diff:2,win:{t:'一道菜让太监总管连声"咱家佩服"!',money:45,dish:1,fame:2},lose:{t:'宫廷菜不同凡响, 甘拜下风'}},
+    {l:'开开眼就好',skip:1,res:'见识了什么叫排场'}]},
+  {id:'j_guo',loc:'jingcheng',e:'🏯',t:'郭巨侠家宴',d:'郭芙蓉娘家设宴, 郭巨侠点名尝尝女儿店里的菜',auto:[[6,{t:'郭巨侠吃了三碗饭! 临走赏了一大盘金锞子',money:50,fame:2}]]},
+  // —— 西域 ——
+  {id:'x_sand',loc:'xiyu',e:'🏜️',t:'沙盗来袭',d:'商队在戈壁遭沙盗围困',ch:[
+    {l:'武比退敌',stat:'wu',diff:2,win:{t:'护商队杀出重围! 首领奉上重金',money:55,fame:2},lose:{t:'沙盗人多势众, 折了财物',money:-30,inj:1}},
+    {l:'破财免灾',pay:25,res:'交了"过路费", 商队感念在心'}]},
+  {id:'x_caravan',loc:'xiyu',e:'🐪',t:'大食商队',d:'大食商队的香料波斯毯, 换还是不换?',auto:[[5,{t:'低买高卖, 赚了个盆满钵满',money:40}],[4,{t:'囤的香料明日正好给店里用',btip:1,money:8}]]},
+  {id:'x_baker',loc:'xiyu',e:'🫓',t:'波斯饼师',d:'波斯饼师的馕坑烤饼香飘十里, 学不学?',ch:[
+    {l:'厨艺切磋',stat:'chu',diff:1,win:{t:'饼师惊叹东方厨艺, 互换绝活!',money:15,dish:1,fame:1},lose:{t:'馕坑温度没掌握, 烤糊了一炉'}},
+    {l:'买十个馕',pay:8,res:'真香!'}]},
+];
+function partyStats(){
+  let wu=1,wuName='佟湘玉',wuBest=1;
+  const F=[['bai','白展堂',()=>2+(upg.btrain||0)*2],['guo','郭芙蓉',()=>2+(upg.gtrain||0)*2],['wushuang','祝无双',()=>2+(upg.wtrain||0)*2],['xing','邢捕头',()=>2+(upg.etrain||0)*2],['san','白三娘',()=>2+(upg.strain||0)*2],['xiaobei','莫小贝',()=>1+(upg.xtrain||0)*2]];
+  for(const[k,n,f]of F)if(upg[k]>0){const v=f();wu+=v;if(v>wuBest){wuBest=v;wuName=n}}
+  let wen=1+(upg.menu||0),wenName='佟湘玉';
+  if(upg.xiucai>0){wen+=3+(upg.ctrain||0)*2;wenName='吕秀才'}
+  const chu=2+(upg.knife||0)*2+((RUN&&RUN.researched)?RUN.researched.length:0);
+  return{wu,wen,chu,wuName,wenName};
+}
 function qCap(){return clamp(3+Math.floor(G.tables.length/3),3,12)}
-function resetRun(){upg={knife:0,shoes:0,deco:0,sign:0,bai:0,guo:0,wushuang:0,xiaobei:0,xiucai:0,xiaomi:0,box:0,menu:0,gtrain:0,btrain:0,wtrain:0,xtrain:0,ctrain:0,mtrain:0,etrain:0,strain:0,wage:0,xing:0,san:0,stove:0,hall:0,apprentice:0};bank=0;nextBuffs={flow:0,price:0,pat:0,tip:0};townOpts=null;nextBanquet=false}
-function newGame(){resetRun();RUN={earn:0,angry:0,researched:[]};speedMul=1;startLevel(1)}
-function PSPEED(){return 250*(1+.12*(upg.shoes||0))*(1+.08*(upg.wage||0))}
-function carryCap(){return Math.min(2+(upg.box||0),3)}
+function resetRun(){upg={knife:0,shoes:0,deco:0,sign:0,bai:0,guo:0,wushuang:0,xiaobei:0,xiucai:0,xiaomi:0,box:0,menu:0,gtrain:0,btrain:0,wtrain:0,xtrain:0,ctrain:0,mtrain:0,etrain:0,strain:0,wage:0,xing:0,san:0,stove:0,hall:0,furn:0};bank=0;nextBuffs={flow:0,price:0,pat:0,tip:0};townOpts=null;nextBanquet=false;nextInjury=false}
+function newGame(){resetRun();RUN={earn:0,angry:0,researched:[],fame:0,lastIncome:0};speedMul=1;startLevel(1)}
+function PSPEED(){return 250*(1+.12*(upg.shoes||0))*(1+.08*(upg.wage||0))*(injuryToday?.85:1)}
+function carryCap(){return 2+(upg.box||0)}
+function PATMUL(){return (1+.15*(upg.deco||0))*((upg.furn||0)>=2?1.15:1)}
 function priceOf(k){return DISHES[k].price*(1+.1*(upg.menu||0))*(G&&G.day&&G.day.price?1.15:1)}
 function mkRunner(key){
   const guo=key==='guo',ws=key==='wushuang',xb=key==='rxb',xc=key==='rxc',xm=key==='xiaomi',ex=key==='rxing',sn=key==='rsan';
@@ -194,24 +317,26 @@ function mkRunner(key){
   const base=guo?205*(1+.2*(upg.gtrain||0)):ws?265*(1+.2*(upg.wtrain||0)):xb?285*(1+.2*(upg.xtrain||0)):xc?135*(1+.2*(upg.ctrain||0)):xm?190*(1+.2*(upg.mtrain||0)):ex?240*(1+.2*(upg.etrain||0)):sn?250*(1+.2*(upg.strain||0)):265*(1+.2*(upg.btrain||0));
   return{key,name:guo?'小郭':ws?'无双':xb?'小贝':xc?'秀才':xm?'小米':ex?'邢捕头':sn?'三娘':'老白',x:hx,y:hy,tx:hx,ty:hy,
     home:{x:hx,y:hy},cur:null,carrying:[],esc:null,walkT:0,idleT:rand(0,9),face:1,moving:false,pt:null,
-    speed:base*(1+.08*(upg.wage||0))}
+    speed:base*(1+.08*(upg.wage||0))*(injuryToday?.85:1)}
 }
 function startLevel(n){
-  const cfg=LEVELS[n-1];
+  const cfg=dayCfg(n);
   G={level:n,cfg,t:0,income:0,timeLeft:cfg.time,closing:false,closeT:0,spawnT:1.0,angry:0,served:0,
      tables:[],custs:[],stoves:[],counter:[],oq:[],runners:[],
      P:{x:480,y:605,tx:480,ty:605,queue:[],cur:null,carrying:[],esc:null,walkT:0,idleT:0,face:1},
      freeze:0,baiCd:0,baiAnim:-1,shake:0,dazuiSay:0,rally:0,rallyCd:0,rallyFx:-1,rallyPx:480,rallyPy:600,
      combo:0,lastServeT:-99,buff:{tip:0,cook:0,market:0},nextEventT:rand(35,55),eventBanner:null,
-     thief:null,thiefT:(n>=4||cfg.endless)?rand(40,80):Infinity,
+     thief:null,thiefT:n>=4?rand(40,80):Infinity,
      walkers:[],walkerT:rand(3,6),
      day:{flow:nextBuffs.flow>0,price:nextBuffs.price>0,pat:nextBuffs.pat>0,tip:nextBuffs.tip>0},
      rushT:nextBuffs.rush>0?60:0,
      hints:{},hintTxt:null,hintT:0,floats:[],parts:[]};
   const tn=Math.min(29,cfg.tables+upg.hall*3);
-  for(let i=0;i<tn;i++)G.tables.push({i,x:TABLE_POS[i][0],y:TABLE_POS[i][1],custs:[],money:0,plates:[]});
-  const sn=Math.min(6,cfg.stoves+(upg.stove||0)+(upg.apprentice||0));
+  const seats=(upg.furn||0)>0?2:1,fancy=(upg.furn||0)>=2;
+  for(let i=0;i<tn;i++)G.tables.push({i,x:TABLE_POS[i][0],y:TABLE_POS[i][1],seats,fancy,custs:[],money:0,plates:[]});
+  const sn=Math.min(6,cfg.stoves+(upg.stove||0));
   for(let i=0;i<sn;i++)G.stoves.push({i,x:105+i*70,y:126,order:null,prog:0});
+  injuryToday=nextInjury;nextInjury=false; // 受伤要在创建员工前生效
   if(upg.bai>0)G.runners.push(mkRunner('bai'));
   if(upg.guo>0)G.runners.push(mkRunner('guo'));
   if(upg.wushuang>0)G.runners.push(mkRunner('wushuang'));
@@ -395,7 +520,7 @@ function updCust(c,dt){
   if(c.state==='queue'){
     walk(c,dt,c.def.spd*spdMul);
     if((G.rally||0)>0)c.patience=Math.min(1,c.patience+dt*.04);
-    else if(G.freeze<=0){c.patience-=dt/(30*c.def.pat*(1+.15*upg.deco)*1.7*(G.day.pat?1.2:1));
+    else if(G.freeze<=0){c.patience-=dt/(30*c.def.pat*PATMUL()*1.7*(G.day.pat?1.2:1));
       if(c.patience<=0){custLeave(c,true);return}}
   }else if(c.state==='follow'){
     const e=c.escorter||G.P;c.tx=e.x-e.face*38;c.ty=e.y+6;
@@ -403,12 +528,13 @@ function updCust(c,dt){
   }else if(c.state==='toTable'){
     if(walk(c,dt,c.def.spd*2.3)){c.state='seated';c.phase='deciding';c.decideT=2.2;c.pop=1;c.moving=false}
   }else if(c.state==='seated'){
+    c.sitT=Math.min(1,(c.sitT||0)+dt*4);
     if(c.phase==='deciding'){c.decideT-=dt;if(c.decideT<=0){c.phase='order';c.patience=1;c.pop=1}}
     else if(c.phase==='order'||c.phase==='wait'){
       const fpm=Math.max.apply(null,c.order.map(k=>(DISHES[k].fx&&DISHES[k].fx.patMul)||1));
       if((G.rally||0)>0)c.patience=Math.min(1,c.patience+dt*.04);
       else if(G.freeze<=0){const base=(c.phase==='order'?22:26)*(G.day.pat?1.2:1);
-        c.patience-=dt/(base*c.def.pat*(1+.15*upg.deco)*fpm);
+        c.patience-=dt/(base*c.def.pat*PATMUL()*fpm);
         if(c.patience<=0){custLeave(c,true);return}}
     }else if(c.phase==='eat'){
       c.eatT-=dt;
@@ -446,11 +572,12 @@ function validOrder(c){return c.state==='seated'&&c.phase==='order'}
 function freeTableNear(from){let bt=null,bd=1e9;
   for(const t of G.tables){if(t.custs.length>0||t.money)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
 function shareTableNear(from){let bt=null,bd=1e9;
-  for(const t of G.tables){if(t.custs.length>=2||t.money)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
+  for(const t of G.tables){if(t.seats<2||t.custs.length<1||t.custs.length>=t.seats||t.money)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
 function seatAt(c,t){
   if(!t)return false;
   const idx=t.custs.length;
-  c.state='toTable';c.tx=t.x+(idx===0?-27:27);c.ty=t.y-22;c.table=t;t.custs.push(c);c.patience=1;
+  c.state='toTable';c.tx=t.x+(idx===0?-48:48);c.ty=t.y+8;c.table=t;t.custs.push(c);c.patience=1;
+  c.face=idx===0?1:-1;c.sitT=0;
   return true}
 function actionTarget(a){const P=G.P;
   if(a.t==='seat')return{x:a.cust.x,y:a.cust.y+8};
@@ -543,7 +670,7 @@ function execAction(a,actor){
     const comboMul=1+.1*Math.min(G.combo-1,10);
     c.pay+=Math.round(priceOf(it.dish)*c.def.pay);
     const fx1=DISHES[it.dish].fx||{};
-    c.tipPool+=Math.round(priceOf(it.dish)*.35*c.patience*c.def.pay*(1+.25*upg.sign)*comboMul*(G.buff.tip>0?2:1)*(G.buff.market>0?1.5:1)*(G.day.tip?1.15:1)*(G.runners.some(rr=>rr.key==='rxc')?1.1:1)*(fx1.tipMul||1));
+    c.tipPool+=Math.round(priceOf(it.dish)*.35*c.patience*c.def.pay*(1+.25*upg.sign)*comboMul*(G.buff.tip>0?2:1)*(G.buff.market>0?1.5:1)*(G.day.tip?1.15:1)*(G.runners.some(rr=>rr.key==='rxc')?1.1:1)*((upg.furn||0)>=2?1.1:1)*(fx1.tipMul||1));
     sfx.serve();G.served++;heartParts(c.x,c.y-62);
     addFloat(c.x,c.y-84,d.name+' 来喽~','#9fe3ff');
     if(G.combo>=3)addFloat(c.x,c.y-106,'连击x'+G.combo+' 🔥','#ffb347');
@@ -558,7 +685,7 @@ function execAction(a,actor){
   }else if(a.t==='collect'){
     const t=a.t2;if(!(t.money>0))return;
     G.income+=t.money;
-    if(G.cfg.endless&&G.income>=200)unlockAch('endless200');
+    if(G.income>=300)unlockAch('endless200');
     addFloat(t.x,t.y-64,'+'+t.money+'两','#ffd24a',22);sfx.coin();coinParts(t.x,t.y-28);
     t.money=0;t.plates=[];
     hint('done','收钱啦!');
@@ -570,7 +697,7 @@ function queueAction(a){
   P.queue.push(a);sfx.click();
 }
 /* ============ AI跑堂(白展堂/郭芙蓉) ============ */
-function runnerCap(r){return Math.min((r.key==='guo'||r.key==='wushuang'||r.key==='rxb'||r.key==='rxc'||r.key==='rxing'||r.key==='rsan'?1:2)+(upg.box||0),3)}
+function runnerCap(r){return (r.key==='guo'||r.key==='wushuang'||r.key==='rxb'||r.key==='rxc'||r.key==='rxing'||r.key==='rsan'?1:2)+(upg.box||0)}
 function claimedTask(r,task){
   const acts=[];
   const P=G.P;if(P.cur)acts.push(P.cur);for(const a of P.queue)acts.push(a);
@@ -626,19 +753,6 @@ function triggerEvent(){
     banner('🥣 丐帮大会! 门口来了'+n+'位丐兄!');sfx.door()}
 }
 /* ============ 葵花点穴手 ============ */
-function resumeEndless(){
-  G.angry=0;G.runners=[];
-  if(upg.bai>0)G.runners.push(mkRunner('bai'));
-  if(upg.guo>0)G.runners.push(mkRunner('guo'));
-  if(upg.wushuang>0)G.runners.push(mkRunner('wushuang'));
-  if(upg.xiaobei>0)G.runners.push(mkRunner('rxb'));
-  if(upg.xiucai>0)G.runners.push(mkRunner('rxc'));
-  if(upg.xiaomi>0)G.runners.push(mkRunner('xiaomi'));
-  if(upg.xing>0)G.runners.push(mkRunner('rxing'));
-  if(upg.san>0)G.runners.push(mkRunner('rsan'));
-  state='play';paused=false;
-  addFloat(W/2,300,'歇够了, 接着干——!','#ffd873',24);
-}
 function useBai(){
   if(!G||state!=='play'||paused)return;
   if(upg.bai<1||G.baiCd>0)return;
@@ -668,12 +782,7 @@ function updatePlay(dt){
   if(G.buff.market>0)G.buff.market-=dt;
   if(G.eventBanner&&(G.eventBanner.t-=dt)<=0)G.eventBanner=null;
   if(G.baiAnim>=0){G.baiAnim+=dt/.6;if(G.baiAnim>1)G.baiAnim=-1}
-  if(G.cfg.endless){
-    const day=Math.floor(G.t/120)+1;
-    if(day>G.level-20){G.level=20+day;banner('🌅 无尽 · 第'+day+'天, 客流更快了!');sfx.gong()}
-  }
   if(pendingAch.length&&G.t>1){banner('🏅 成就解锁: '+pendingAch.shift()+'!');sfx.coin()}
-  if(G.cfg.endless&&G.angry>=8)return endLevel();
   // 包席预约: 开场贵客组团上门
   if(G.banquetLeft>0){
     G.banquetT=(G.banquetT||0)-dt;
@@ -705,7 +814,7 @@ function updatePlay(dt){
     if(G.spawnT<=0){
       if(qn<qCap()){
         spawnCust();
-        const ease=G.cfg.endless?Math.max(.15,1-(G.level-21)*.07):1;
+        const ease=1/(1+Math.min(RUN.fame||0,25)*.02);
         G.spawnT=rand(G.cfg.spawn[0],G.cfg.spawn[1])*(qn>=qCap()-1?1.6:1)*ease*(G.day.flow?.85:1)*((G.rushT||0)>0?.5:1);
       }else G.spawnT=2;
     }
@@ -730,24 +839,23 @@ function updatePlay(dt){
   updFx(dt);
 }
 function endLevel(){
-  if(G.cfg.endless){const add=G.income-(G.banked||0);bank+=add;G.banked=G.income;state='fail';sfx.angry();return}
-  if(G.income>=G.cfg.target){
-    bank+=G.income;RUN.earn+=G.income;
-    unlockAch('first');
-    if(G.income>=150)unlockAch('rich');
-    if(G.angry===0)unlockAch('noangry');
-    if(G.level>=6)unlockAch('pass6');
-    if(G.level>=20)unlockAch('pass20');
-    if(G.level>best){best=G.level;localStorage.setItem('tfkz_best',String(best))}
-    state='pass';sfx.gong();
-  }else{state='fail';sfx.angry()}
+  RUN.prevIncome=RUN.lastIncome;
+  bank+=G.income;RUN.earn+=G.income;RUN.lastIncome=G.income;
+  unlockAch('first');
+  if(G.income>=150)unlockAch('rich');
+  if(G.income>=300)unlockAch('endless200');
+  if(G.angry===0)unlockAch('noangry');
+  if(G.level>=7)unlockAch('pass6');
+  if(G.level>=30)unlockAch('pass20');
+  if(G.level>best){best=G.level;localStorage.setItem('tfkz_best',String(best))}
+  state='pass';sfx.gong();
 }
 function update(dt){
   T+=dt;
   if(state==='play'&&!paused){
     for(let i=0;i<speedMul;i++){if(state!=='play')break;updatePlay(dt)}
     ambient(dt);
-  }
+  }else if(state==='travel')updTravel(dt);
 }
 /* ============ 背景绘制 ============ */
 function drawLantern(x,y,swing,scale){
@@ -851,7 +959,7 @@ function drawStove(s){
 }
 function drawDazui(){
   const x=38,y=140,cook=G.stoves.some(s=>s.order);
-  ctx.save();ctx.translate(x,y);
+  ctx.save();ctx.translate(x,y);ctx.scale(.85,.85);
   ell(0,2,26,8,'rgba(0,0,0,.25)');
   const bob=cook?Math.abs(Math.sin(T*9))*2.5:Math.sin(T*2)*1.2;
   ctx.strokeStyle='#3a2c20';ctx.lineWidth=8;ctx.lineCap='round';
@@ -891,28 +999,8 @@ function drawDazui(){
   }
 }
 /* ============ 人物绘制 ============ */
-function drawCust(c){
-  const d=c.def;
-  ctx.save();ctx.translate(c.x,c.y);
-  ell(0,2,20,7,'rgba(0,0,0,.25)');
-  const mv=c.moving,bob=mv?Math.abs(Math.sin(c.walkT*.05))*3:Math.sin(c.idleT*1.8)*1.2;
-  const yb=-bob;
-  ctx.strokeStyle='#3a2c20';ctx.lineWidth=5;ctx.lineCap='round';
-  const sw=mv?Math.sin(c.walkT*.05)*6:0;
-  line(-6,-16,-6-sw+yb*.3,0);line(6,-16,6+sw+yb*.3,0);
-  // 袍子
-  ctx.fillStyle=d.robe;
-  ctx.beginPath();ctx.moveTo(-12,-46+yb);ctx.quadraticCurveTo(-18,-22,-16,-13+yb);
-  ctx.lineTo(16,-13+yb);ctx.quadraticCurveTo(18,-22,12,-46+yb);ctx.closePath();ctx.fill();
-  ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(-15,-17+yb,30,4);
-  ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(-12,-34+yb,4,16);
-  if(c.key==='beggar'){ctx.fillStyle='#6b5a3c';ctx.fillRect(2,-40+yb,9,9);
-    ctx.strokeStyle='#4a3b28';ctx.lineWidth=1;line(2,-36+yb,11,-36+yb);line(6,-40+yb,6,-31+yb)}
-  // 手臂
-  ctx.strokeStyle=d.robe;ctx.lineWidth=6;
-  const asw=mv?Math.sin(c.walkT*.05)*5:0;
-  line(-10,-40+yb,-16,-22+yb+asw);line(10,-40+yb,16,-22+yb-asw);
-  // 头
+const PSC=.75; // 人/物比例: 人物缩小, 桌椅放大
+function drawCustHead(c,d,yb){
   ell(0,-56+yb,13,13,d.skin);
   ctx.fillStyle=d.hair;ctx.beginPath();ctx.arc(0,-58+yb,13,Math.PI*.95,Math.PI*2.05);ctx.fill();
   if(c.key==='beggar'){ctx.strokeStyle=d.hair;ctx.lineWidth=2;
@@ -966,11 +1054,55 @@ function drawCust(c){
     ell(-16,-63+yb,4,2,'#d8b25a');ell(16,-63+yb,4,2,'#d8b25a');
     ctx.fillStyle='#c9932a';ell(0,-63+yb,3.5,2.5,'#c9932a');
   }
+}
+function drawCust(c){
+  const d=c.def,sit=c.state==='seated';
+  ctx.save();ctx.translate(c.x,c.y);ctx.scale(PSC,PSC);
+  if(sit){
+    // 坐姿: 落座下沉小动画, 腿搭凳上, 手臂搭桌边
+    ctx.translate(0,(1-clamp(c.sitT||0,0,1))*9);
+    const fd=c.face||1;
+    ctx.strokeStyle='#3a2c20';ctx.lineWidth=5;ctx.lineCap='round';
+    const kick=c.phase==='eat'?Math.sin(T*8)*2:0;
+    line(-5,-13,fd*9,-7+kick);line(5,-13,fd*12,-5-kick);
+    ctx.fillStyle=d.robe;
+    ctx.beginPath();ctx.moveTo(-13,-45);ctx.quadraticCurveTo(-17,-28,-14,-12);
+    ctx.lineTo(14,-12);ctx.quadraticCurveTo(17,-28,13,-45);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(-13,-16,27,4);
+    ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(-10,-36,4,16);
+    if(c.key==='beggar'){ctx.fillStyle='#6b5a3c';ctx.fillRect(2,-40,9,9);
+      ctx.strokeStyle='#4a3b28';ctx.lineWidth=1;line(2,-36,11,-36);line(6,-40,6,-31)}
+    ctx.strokeStyle=d.robe;ctx.lineWidth=6;
+    if(c.phase==='eat'){const up=Math.sin(T*9)*3;
+      line(-8,-38,fd*5,-33+up);line(8,-38,fd*9,-31-up)}
+    else{line(-8,-38,fd*13,-26);line(8,-38,fd*15,-29)}
+    drawCustHead(c,d,0);
+  }else{
+    ell(0,2,20,7,'rgba(0,0,0,.25)');
+    const mv=c.moving,bob=mv?Math.abs(Math.sin(c.walkT*.05))*3:Math.sin(c.idleT*1.8)*1.2;
+    const yb=-bob;
+    ctx.strokeStyle='#3a2c20';ctx.lineWidth=5;ctx.lineCap='round';
+    const sw=mv?Math.sin(c.walkT*.05)*6:0;
+    line(-6,-16,-6-sw+yb*.3,0);line(6,-16,6+sw+yb*.3,0);
+    // 袍子
+    ctx.fillStyle=d.robe;
+    ctx.beginPath();ctx.moveTo(-12,-46+yb);ctx.quadraticCurveTo(-18,-22,-16,-13+yb);
+    ctx.lineTo(16,-13+yb);ctx.quadraticCurveTo(18,-22,12,-46+yb);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(-15,-17+yb,30,4);
+    ctx.fillStyle='rgba(255,255,255,.14)';ctx.fillRect(-12,-34+yb,4,16);
+    if(c.key==='beggar'){ctx.fillStyle='#6b5a3c';ctx.fillRect(2,-40+yb,9,9);
+      ctx.strokeStyle='#4a3b28';ctx.lineWidth=1;line(2,-36+yb,11,-36+yb);line(6,-40+yb,6,-31+yb)}
+    // 手臂
+    ctx.strokeStyle=d.robe;ctx.lineWidth=6;
+    const asw=mv?Math.sin(c.walkT*.05)*5:0;
+    line(-10,-40+yb,-16,-22+yb+asw);line(10,-40+yb,16,-22+yb-asw);
+    drawCustHead(c,d,yb);
+  }
   ctx.restore();
 }
 function drawTong(){
   const P=G.P;
-  ctx.save();ctx.translate(P.x,P.y);
+  ctx.save();ctx.translate(P.x,P.y);ctx.scale(PSC,PSC);
   ell(0,2,20,7,'rgba(0,0,0,.28)');
   const mv=P.moving,bob=mv?Math.abs(Math.sin(P.walkT*.05))*3:Math.sin(P.idleT*1.8)*1.2;
   const yb=-bob;
@@ -1032,7 +1164,7 @@ function drawRunner(r){
     }
     ctx.globalAlpha=1;
   }
-  ctx.save();ctx.translate(r.x,r.y);ctx.scale(sc,sc);
+  ctx.save();ctx.translate(r.x,r.y);ctx.scale(sc*PSC,sc*PSC);
   ell(0,2,19,7,'rgba(0,0,0,.25)');
   const mv=r.moving,bob=mv?Math.abs(Math.sin(r.walkT*.055))*3:Math.sin(r.idleT*1.8)*1.2;
   const yb=-bob;
@@ -1119,7 +1251,7 @@ function drawThief(){
   const isHov=hover&&hover.kind==='thief';
   if(isHov){ctx.strokeStyle='rgba(255,107,90,.9)';ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(th.x,th.y-30,42,0,TAU);ctx.stroke()}
-  ctx.save();ctx.translate(th.x,th.y);
+  ctx.save();ctx.translate(th.x,th.y);ctx.scale(PSC,PSC);
   ell(0,2,16,6,'rgba(0,0,0,.3)');
   const mv=th.moving,bob=mv?Math.abs(Math.sin(th.walkT*.06))*3:0;
   const yb=-bob;
@@ -1180,16 +1312,34 @@ function drawWalker(w){
     txt('5两',w.x+31,w.y-58,12,'#ffd24a','center',F_KAI,true);
   }
 }
+function drawStool(x,y){
+  // 方凳: 面板+四腿
+  ctx.strokeStyle='#5e3d22';ctx.lineWidth=3;
+  line(x-9,y+2,x-11,y+14);line(x+9,y+2,x+11,y+14);
+  ell(x,y,14,6,'#7e5026');ell(x,y-2,12.5,5,'#a8723f');
+  ctx.strokeStyle='rgba(60,32,12,.5)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(x,y-2,8,3,0,0,TAU);ctx.stroke();
+}
 function drawTable(t){
   const isHov=hover&&hover.kind==='table'&&hover.ref===t;
-  ell(t.x,t.y+26,44,13,'rgba(0,0,0,.22)');
+  const seats=t.seats||2,fancy=t.fancy,rx=seats>1?56:42;
+  ell(t.x,t.y+28,rx+8,14,'rgba(0,0,0,.22)');
+  // 桌腿与桌面(红木雅座铺金边桌布)
   ctx.strokeStyle='#6b421e';ctx.lineWidth=7;
-  line(t.x-14,t.y+8,t.x-18,t.y+30);line(t.x+14,t.y+8,t.x+18,t.y+30);
-  ell(t.x,t.y,50,21,'#8a5a2e');
-  ell(t.x,t.y-3,48,19,'#a8723f');
-  ctx.strokeStyle='rgba(60,32,12,.4)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.ellipse(t.x,t.y-3,34,13,0,0,TAU);ctx.stroke();
-  ell(t.x,t.y+30,26,8,'#5e3d22');
+  line(t.x-14,t.y+8,t.x-18,t.y+32);line(t.x+14,t.y+8,t.x+18,t.y+32);
+  ell(t.x,t.y,rx,22,fancy?'#93362c':'#8a5a2e');
+  ell(t.x,t.y-3,rx-2,20,fancy?'#c04838':'#a8723f');
+  if(fancy){
+    ctx.strokeStyle='#ffd873';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.ellipse(t.x,t.y-3,rx-2,20,0,0,TAU);ctx.stroke();
+    ctx.strokeStyle='rgba(255,216,115,.45)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.ellipse(t.x,t.y-3,rx-13,13,0,0,TAU);ctx.stroke();
+    emo('🌷',t.x,t.y-9,12);
+  }else{
+    ctx.strokeStyle='rgba(60,32,12,.4)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.ellipse(t.x,t.y-3,rx-14,12,0,0,TAU);ctx.stroke();
+  }
+  ell(t.x,t.y+32,26,8,'#5e3d22');
   // 盘中菜
   let pl=[];for(const cu of t.custs)if(cu.state==='seated'&&cu.phase==='eat')pl=pl.concat(cu.received);
   for(let i=0;i<pl.length;i++){
@@ -1211,7 +1361,7 @@ function drawTable(t){
   }
   if(isHov&&t.money>0){
     ctx.strokeStyle='rgba(255,220,120,.9)';ctx.lineWidth=3;
-    ctx.beginPath();ctx.ellipse(t.x,t.y,56,26,0,0,TAU);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(t.x,t.y,rx+10,28,0,0,TAU);ctx.stroke();
   }
 }
 function drawCounterDishes(){
@@ -1289,18 +1439,14 @@ function drawHUD(){
   ctx.fillStyle='rgba(38,22,10,.92)';ctx.fillRect(0,0,W,44);
   ctx.fillStyle='#d8b25a';ctx.fillRect(0,43,W,2);
   txt('第'+G.level+'天',60,22,20,'#ffe9b0','center',F_KAI,true);
-  // 银两进度
-  const bw=280,ratio=clamp(G.income/G.cfg.target,0,1);
-  txt('银子',168,22,15,'#e8c98a','left');
-  ctx.fillStyle='#1d1008';rr(205,10,bw,24,10);ctx.fill();
-  const gr=ctx.createLinearGradient(207,0,207+bw,0);
-  gr.addColorStop(0,'#c9932a');gr.addColorStop(1,'#ffd24a');
-  ctx.fillStyle=gr;rr(207,12,Math.max(4,bw*ratio-4),20,8);ctx.fill();
-  txt(G.income+' / '+G.cfg.target+' 两',205+bw/2,22,14,ratio>=1?'#fff':'#ffe9b0');
+  // 今日/昨日营收(经营养成: 无目标压力)
+  txt('今日',136,22,14,'#e8c98a','left');
+  txt(G.income+' 两',176,22,23,'#ffd24a','left',F_KAI,true);
+  txt('昨日 '+(RUN.lastIncome||0)+' 两',326,22,13,'#c9a36a','left');
   // 时间
   const tl=Math.ceil(G.timeLeft),mm=String(Math.floor(tl/60)).padStart(2,'0'),ss=String(tl%60).padStart(2,'0');
   const urgent=tl<=15&&tl>0&&Math.sin(T*8)>0;
-  const tstr=G.cfg.endless?'♾ 第'+(G.level-20)+'天':(G.closing?'打烊中…':'⏳ '+mm+':'+ss);
+  const tstr=G.closing?'打烊中…':'⏳ '+mm+':'+ss;
   txt(tstr,530,22,20,urgent||G.closing?'#ff6b5a':'#ffe9b0','center',F_KAI,true);
   // 连击
   if(G.combo>=2)txt('🔥x'+G.combo,625,22,16,'#ffb347','center',F_KAI,true);
@@ -1368,11 +1514,13 @@ function drawPlayScene(){
   if(G.shake>0)ctx.translate(rand(-G.shake,G.shake),rand(-G.shake,G.shake));
   drawBackdrop(true);
   drawCounterDishes();
+  // 凳椅画在最底层, 人物坐在其上
+  for(const t of G.tables)for(let i=0;i<(t.seats||2);i++)drawStool(t.x+(i===0?-48:48),t.y+8);
   const ents=[];
   for(const t of G.tables)ents.push({y:t.y+26,d:()=>drawTable(t)});
   for(const c of G.custs)if(c.state!=='seated')ents.push({y:c.y,d:()=>drawCust(c)});
   const seated=G.custs.filter(c=>c.state==='seated');
-  for(const c of seated)ents.push({y:c.y-24,d:()=>drawCust(c)});
+  for(const c of seated)ents.push({y:c.y-6,d:()=>drawCust(c)});
   ents.push({y:G.P.y,d:()=>drawTong()});
   for(const r of G.runners)ents.push({y:r.y,d:()=>drawRunner(r)});
   if(G.thief)ents.push({y:G.thief.y,d:()=>drawThief()});
@@ -1458,20 +1606,16 @@ function drawTitle(){
   ctx.strokeStyle='#ffd873';ctx.lineWidth=4;rr(-242,-52,484,104,9);ctx.stroke();
   txt('同 福 客 栈',0,2,84,'#ffd873','center',F_KAI,true);
   ctx.restore();
-  txt('—— 七侠镇 · 武林外传客栈经营 ——',W/2,306,22,'#ffe9b0');
+  txt('—— 七侠镇 · 武林外传客栈经营养成 ——',W/2,306,22,'#ffe9b0');
   drawLantern(W/2-330,140,Math.sin(T*1.2)*.08,1.5);
   drawLantern(W/2+330,140,Math.sin(T*1.4+1)*.08,1.5);
-  drawBtn(W/2-130,378,260,56,'开 始 新 游 戏',true,null,'newgame');
-  drawBtn(W/2-130,448,260,50,'♾ 无尽模式 (赠400两)',true,null,'endlessdirect');
-  drawBtn(W/2-195,512,190,48,'玩 法 说 明',true,null,'tohelp');
-  drawBtn(W/2+5,512,190,48,'🏅 成 就',true,null,'toach');
-  if(best>0)txt(best>=20?'🏆 最高纪录: 已通关同福客栈!':'最高纪录: 通关第'+best+'天',W/2,582,17,'#e8c98a');
-  txt('鼠标/触屏点击操作 · 共20天+无尽模式 · 祝生意兴隆',W/2,610,14,'rgba(232,201,138,.6)');
+  drawBtn(W/2-130,382,260,58,'开 始 经 营',true,null,'newgame');
+  drawBtn(W/2-195,458,190,48,'玩 法 说 明',true,null,'tohelp');
+  drawBtn(W/2+5,458,190,48,'🏅 成 就',true,null,'toach');
+  if(best>0)txt('最高纪录: 经营到第 '+best+' 天',W/2,536,17,'#e8c98a');
+  txt('经营养成 · 无天数上限 · 每日可外出游历 · 第30天解锁挂机',W/2,566,14,'rgba(232,201,138,.6)');
   for(const b of frameBtns){
     if(b.id==='newgame')b.cb=()=>newGame();
-    else if(b.id==='endlessdirect')b.cb=()=>{
-      resetRun();RUN={earn:0,angry:0,researched:[],town:{panned:false,bought:[],panResult:null,resDone:false}};
-      bank=400;startLevel(21);state='shop'};
     else if(b.id==='tohelp')b.cb=()=>{state='help'};
     else if(b.id==='toach')b.cb=()=>{state='ach'};
   }
@@ -1499,16 +1643,16 @@ function drawHelp(){
   drawBackdrop(false);
   panel(150,50,660,570,'玩 法 说 明');
   const L=[
-    ['1️⃣','点击排队客人带位入座(掌柜空闲时也会自动迎宾), 点"!"客人下单'],
-    ['3️⃣','李大嘴自动做菜, 做好的菜会摆到右上"出菜口"'],
-    ['4️⃣','点击出菜口的菜端起(最多2盘), 再点击点菜客人上菜'],
-    ['5️⃣','客人吃完在桌上留下银两, 点击桌子收钱并清理'],
-    ['⚠️','客人头顶红心是耐心, 耗尽会生气离店; 连续上菜有连击加成'],
-    ['🤝','雇小贝后有空桌客人自己入座, 五员工全员跑堂, 小米拉客'],
-    ['💫','掌柜空闲自动干活; R键/按钮释放「鼓舞」: 全员提速+客人耐心回升10秒'],    ['🎉','随机事件不断; 第4天起有小偷, 连点3下抓住!'],
-    ['📣','店外大街: 点击"?"路人招揽进店, 💎贵客点大单, 小推车买增益'],
-    ['🏘️','每晚可去镇上: 淘金/研发新菜(正负效果)/投资/包席15人/扩建大厅'],
-    ['🎯','共20天通关, 之后解锁无尽模式; F键或按钮加速游戏'],
+    ['1️⃣','点击排队客人带位入座(掌柜空闲自动迎宾), 点"!"客人下单'],
+    ['2️⃣','李大嘴自动做菜, 好菜摆到出菜口; 点击端起再点客人上菜'],
+    ['3️⃣','客人吃完桌上留银两, 点击收钱; 连续上菜有连击加成'],
+    ['🪑','商铺里人人可升级: 桌椅 单人→双人→雅座, 灶台/菜刀/菜单皆可升'],
+    ['🌅','每天清早二选一: 开张经营 或 外出游历(赚外快·学新菜·涨名气)'],
+    ['♾','第30天解锁挂机: 外出游历时, 店里按昨日收入照常赚钱'],
+    ['⚠️','客人耐心耗尽会生气离店; 第4天起有小偷, 连点3下抓住!'],
+    ['📣','店外大街: "?"路人可招揽进店, 💎贵客点大单, 小推车买增益'],
+    ['🏘️','每晚镇上夜市: 淘金/研发新菜/事件投资/包席/扩建大厅'],
+    ['🎯','无天数上限, 尽情经营养成; F加速 R鼓舞 P暂停 M静音'],
   ];
   let y=126;
   for(const[ic,t]of L){
@@ -1519,84 +1663,75 @@ function drawHelp(){
 }
 function drawIntro(){
   drawPlaySceneBg();
-  panel(200,140,560,400,'');
-  txt(G.cfg.endless?'♾ 无尽模式':'第 '+G.level+' 天',W/2,198,42,'#ffd873','center',F_KAI,true);
+  panel(200,116,560,482,'');
+  txt('第 '+G.level+' 天',W/2,172,42,'#ffd873','center',F_KAI,true);
   const story=(G.cfg.story||'').split('\n');
-  let y=256;for(const s of story){txt(s,W/2,y,18,'#f2e2c0');y+=30}
-  ctx.strokeStyle='rgba(216,178,90,.4)';ctx.lineWidth=1;line(280,y+4,680,y+4);y+=34;
-  txt(G.cfg.endless?'🎯 无时间限制 · 生气满8位打烊':'🎯 今日目标: '+G.cfg.target+' 两    ⏳ 时长: '+Math.round(G.cfg.time/60)+'分钟',W/2,y,19,'#ffe9b0');y+=30;
-  txt('🪑 客桌 ×'+G.tables.length+'    🔥 灶台 ×'+G.stoves.length,W/2,y,17,'#e8c98a');y+=27;
-  txt('👥 今日客人: '+Object.keys(G.cfg.pool).map(k=>CTYPES[k].name).join('、'),W/2,y,14.5,'#e8c98a');
-  drawBtn(W/2-110,464,220,54,'🔔 开张!',true,null,'startday');
-  for(const b of frameBtns)if(b.id==='startday')b.cb=()=>{state='play';G.t=0;sfx.gong()};
+  let y=222;for(const s of story){txt(s,W/2,y,18,'#f2e2c0');y+=30}
+  ctx.strokeStyle='rgba(216,178,90,.4)';ctx.lineWidth=1;line(280,y+4,680,y+4);y+=32;
+  const seats=G.tables.reduce((a,t)=>a+(t.seats||2),0);
+  txt('🪑 客桌×'+G.tables.length+'(共'+seats+'座)   🔥 灶台×'+G.stoves.length,W/2,y,16,'#e8c98a');y+=26;
+  txt('👥 今日客人: '+Object.keys(G.cfg.pool).map(k=>CTYPES[k].name).join('、'),W/2,y,13.5,'#e8c98a');y+=26;
+  if(RUN.fame){txt('📣 名气 '+'★'.repeat(Math.min(RUN.fame,10))+' → 客流+'+Math.min(RUN.fame,25)*2+'%',W/2,y,13.5,'#ffd873');y+=24}
+  txt('⏳ 营业时长: '+Math.round(G.cfg.time/60)+'分钟',W/2,y,13.5,'#c9a36a');y+=24;
+  if(injuryToday){txt('🤕 昨日游历受了伤: 今日全员速度-15%',W/2,y,13.5,'#ff9f8a');y+=24}
+  y+=6;
+  const idle=G.level>=30&&RUN.lastIncome>0;
+  drawBtn(250,468,220,54,'🔔 开张经营',true,null,'startday');
+  drawBtn(490,468,220,54,idle?'🐎 游历+挂机':'🐎 外出游历',true,null,'travelgo');
+  txt(idle?'游历时店里照常开张: 约每日 +'+RUN.lastIncome+' 两挂机':'7个江湖地点 · 奇遇/文比/武比 · 赚外快学新菜',W/2,546,12.5,'#c9a36a');
+  for(const b of frameBtns){
+    if(b.id==='startday')b.cb=()=>{state='play';G.t=0;sfx.gong()};
+    else if(b.id==='travelgo')b.cb=()=>{state='map'};
+  }
 }
 function drawPlaySceneBg(){drawBackdrop(true);
+  for(const t of G.tables)for(let i=0;i<(t.seats||2);i++)drawStool(t.x+(i===0?-48:48),t.y+8);
   const ents=[];for(const t of G.tables)ents.push({y:t.y+26,d:()=>drawTable(t)});
   for(const r of G.runners)ents.push({y:r.y,d:()=>drawRunner(r)});
   ents.push({y:G.P.y,d:()=>drawTong()});ents.sort((a,b)=>a.y-b.y);for(const e of ents)e.d()}
 function drawPass(){
   drawPlaySceneBg();
-  const ratio=G.income/G.cfg.target,stars=ratio>=1.6?3:ratio>=1.25?2:1;
-  panel(230,130,500,420,'');
-  emo('🎉',W/2,192,44);
-  txt('第 '+G.level+' 天 · 生意兴隆!',W/2,250,32,'#ffd873','center',F_KAI,true);
-  for(let i=0;i<3;i++)star(W/2-60+i*60,296,22,i<stars?'#ffd24a':'#4a3a26');
-  txt('今日收入 '+G.income+' 两 (目标 '+G.cfg.target+' 两)',W/2,342,20,'#ffe9b0');
-  txt(stars>=3?'额滴神呀! 客似云来, 财源广进!':stars>=2?'生意兴隆, 蒸蒸日上~':'总算没亏本, 明天继续加油!',W/2,376,18,'#e8c98a');
-  txt('钱柜累计 '+bank+' 两',W/2,408,16,'#c9a36a');
-  if(G.level>=20){
-    drawBtn(W/2-110,460,220,54,'🏆 查看结局',true,null,'passnext');
-  }else{
-    drawBtn(268,460,200,54,'🛒 前往商铺',true,null,'passnext');
-    drawBtn(492,460,200,54,'🏘️ 镇上夜市',true,null,'passtown');
-  }
+  const prev=RUN.prevIncome||0;
+  const stars=G.level>1&&G.income>=prev*1.2?3:(G.income>=prev*.8||G.level===1)?2:1;
+  panel(230,130,500,430,'');
+  emo('🏮',W/2,192,42);
+  txt('第 '+G.level+' 天 · 打烊',W/2,248,30,'#ffd873','center',F_KAI,true);
+  for(let i=0;i<3;i++)star(W/2-60+i*60,292,20,i<stars?'#ffd24a':'#4a3a26');
+  txt('今日收入 '+G.income+' 两'+(prev?' (昨日 '+prev+' 两)':''),W/2,334,19,'#ffe9b0');
+  txt('服务 '+G.served+' 份 · 生气 '+G.angry+' 位 · 累计 '+RUN.earn+' 两',W/2,364,15,'#e8c98a');
+  txt('钱柜 '+bank+' 两'+(RUN.fame?' · 名气 ★x'+RUN.fame:''),W/2,392,15,'#c9a36a');
+  txt(G.level===29?'明天就是第30天, 挂机经营即将解锁!':G.level>=30?'出门游历时, 店里可按昨日收入挂机~':stars>=3?'额滴神呀! 生意越来越红火!':'明天继续加油!',W/2,422,15,'#ffd873');
+  drawBtn(268,470,200,54,'🛒 前往商铺',true,null,'passnext');
+  drawBtn(492,470,200,54,'🏘️ 镇上夜市',true,null,'passtown');
   for(const b of frameBtns){
-    if(b.id==='passnext')b.cb=()=>{if(G.level>=20)state='complete';else state='shop'};
+    if(b.id==='passnext')b.cb=()=>{state='shop'};
     if(b.id==='passtown')b.cb=()=>{state='town'};
-  }
-}
-function drawFail(){
-  drawPlaySceneBg();
-  panel(230,150,500,390,'');
-  emo(G.cfg.endless?'♾':'😢',W/2,210,46);
-  txt(G.cfg.endless?'累倒啦! 歇口气整备一下~':'今天亏本了……',W/2,274,34,'#ff8f86','center',F_KAI,true);
-  if(G.cfg.endless){
-    txt('♾ 第'+(G.level-20)+'天 · 累计挣 '+G.income+' 两 · 服务 '+G.served+' 份',W/2,326,19,'#f2e2c0');
-    txt(G.income>=300?'佟湘玉: 额滴神呀, 数钱数到手抽筋!':G.income>=150?'小郭: 这才哪到哪, 我还能撑!':'白展堂: 要不……还是跑路吧。',W/2,360,17,'#e8c98a');
-  }else{
-    txt('只挣了 '+G.income+' 两, 差 '+(G.cfg.target-G.income)+' 两',W/2,326,19,'#f2e2c0');
-    txt('佟湘玉: 额滴神呀! 连本钱都赚不回来……',W/2,360,17,'#e8c98a');
-  }
-  drawBtn(W/2-190,426,180,50,G.cfg.endless?'🛒 商铺整备':'再试一天',true,null,'retry');
-  drawBtn(W/2+10,426,180,50,'回到标题',true,null,'totitle');
-  for(const b of frameBtns){
-    if(b.id==='retry')b.cb=()=>{if(G.cfg.endless)state='shop';else startLevel(G.level)};
-    if(b.id==='totitle')b.cb=()=>{state='title'};
   }
 }
 function drawShop(){
   drawBackdrop(false);
-  panel(110,20,740,610,'🛒 同福商铺');
+  panel(110,20,740,610,'🛒 同福商铺 · 人人可升级');
   txt('钱柜: '+bank+' 两',765,56,19,'#ffd24a','center',F_KAI,true);
-  if(G.cfg.endless)txt('♾ 规则: 无限时长 · 生气满8位打烊 · 败后可整备续战(收入保留)',480,88,13,'#ffd873');
+  txt('打烊后今日收入已自动存入钱柜 · 买好升级, 明日生意更好',480,86,12.5,'#c9a36a');
   for(let i=0;i<SHOP.length;i++){
     const s=SHOP[i];
-    const cx=i<10?126:458,cy=98+(i%10)*49;
+    const cx=i<13?126:458,cy=94+(i%13)*37;
     const lv=upg[s.key],maxed=lv>=s.max,cost=s.cost[lv];
     const dep=s.key==='gtrain'?upg.guo>0:s.key==='btrain'?upg.bai>0:s.key==='wtrain'?upg.wushuang>0:s.key==='xtrain'?upg.xiaobei>0:s.key==='ctrain'?upg.xiucai>0:s.key==='mtrain'?upg.xiaomi>0:s.key==='etrain'?upg.xing>0:s.key==='strain'?upg.san>0:true;
     const can=!maxed&&bank>=cost&&dep;
-    ctx.fillStyle='rgba(30,16,6,.6)';rr(cx,cy,316,43,8);ctx.fill();
-    ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(cx,cy,316,43,8);ctx.stroke();
-    emo(s.emoji,cx+19,cy+21,18);
-    txt(s.name,cx+37,cy+13,12,'#ffe9c8','left',F_KAI,true);
+    ctx.fillStyle='rgba(30,16,6,.6)';rr(cx,cy,316,33,7);ctx.fill();
+    ctx.strokeStyle='rgba(216,178,90,.35)';ctx.lineWidth=1.5;rr(cx,cy,316,33,7);ctx.stroke();
+    emo(s.emoji,cx+16,cy+16,15);
     let pips='';
     for(let j=0;j<s.max;j++)pips+=j<lv?'●':'○';
-    txt(s.desc+' '+pips+(dep?'':' (未雇佣)'),cx+37,cy+31,9.5,dep?'#d8c3a0':'#a08060','left');
-    if(maxed)txt('已满级',cx+262,cy+21,12,'#9a9082','center',F_KAI,true);
-    else drawBtn(cx+212,cy+5,98,33,cost+' 两',can,null,'shop_'+s.key);
+    const d=typeof s.desc==='function'?s.desc():s.desc;
+    txt(s.name,cx+31,cy+11,11.5,'#ffe9c8','left',F_KAI,true);
+    txt(d+' '+pips+(dep?'':' (未雇佣)'),cx+31,cy+24,9,dep?'#d8c3a0':'#a08060','left');
+    if(maxed)txt('已满',cx+298,cy+16,11,'#9a9082','center',F_KAI,true);
+    else drawBtn(cx+240,cy+4,72,25,cost+' 两',can,null,'shop_'+s.key);
   }
-  drawBtn(240,594,220,40,'🏘️ 镇上夜市',true,null,'totown');
-  drawBtn(500,594,220,40,G.cfg.endless?'♾ 开战 / 接着干':'🌅 开始第 '+(G.level+1)+' 天',true,null,'nextday');
+  drawBtn(240,590,220,38,'🏘️ 镇上夜市',true,null,'totown');
+  drawBtn(500,590,220,38,'🌅 开始第 '+(G.level+1)+' 天',true,null,'nextday');
   for(const b of frameBtns){
     if(b.id&&b.id.indexOf('shop_')===0){
       const s=SHOP.find(it=>it.key===b.id.slice(5));
@@ -1605,7 +1740,7 @@ function drawShop(){
         const cost=s.cost[lv];
         if(dep&&bank>=cost){bank-=cost;upg[s.key]++;sfx.coin();
           if(upg.bai&&upg.guo&&upg.wushuang&&upg.xiaobei&&upg.xiucai)unlockAch('team')}};
-    }else if(b.id==='nextday')b.cb=()=>{if(G.cfg.endless)resumeEndless();else startLevel(G.level+1)};
+    }else if(b.id==='nextday')b.cb=()=>startLevel(G.level+1);
     else if(b.id==='totown')b.cb=()=>{state='town'};
   }
 }
@@ -1682,7 +1817,7 @@ function drawTown(){
   if(RUN.researched.length)bf.push('新菜x'+RUN.researched.length);
   txt(bf.length?'🌙 明日: '+bf.join(' · '):'🌙 今晚可淘金/研发新菜/投资/包席, 为明天铺路',480,568,13.5,'#ffd873');
   drawBtn(240,586,220,44,'🛒 去商铺',true,null,'toshop');
-  drawBtn(500,586,220,44,G.cfg.endless?'♾ 开战 / 接着干':'🌅 开始第 '+(G.level+1)+' 天',true,null,'nextday2');
+  drawBtn(500,586,220,44,'🌅 开始第 '+(G.level+1)+' 天',true,null,'nextday2');
   for(const b of frameBtns){
     if(b.id==='pan')b.cb=()=>{
       if(RUN.town.panned||bank<100)return;
@@ -1721,32 +1856,197 @@ function drawTown(){
       };
     }
     else if(b.id==='toshop')b.cb=()=>{state='shop'};
-    else if(b.id==='nextday2')b.cb=()=>{if(G.cfg.endless)resumeEndless();else startLevel(G.level+1)};
+    else if(b.id==='nextday2')b.cb=()=>startLevel(G.level+1);
   }
 }
-function drawComplete(){
-  drawBackdrop(false);
-  // 烟花
-  for(let k=0;k<4;k++){
-    const seed=Math.floor(T+k*.6),ph=(T-seed)/1.1;
-    if(ph<1){const fx=140+((seed*137)%680),fy=70+((seed*89)%140),col=['#ff6b5a','#ffd24a','#7fd4ff','#e3543e'][k%4];
-      for(let i=0;i<14;i++){const a=i/14*TAU,r=ph*110;
-        ctx.globalAlpha=(1-ph)*.9;star(fx+Math.cos(a)*r,fy+Math.sin(a)*r*.7,5+3*(1-ph),col)}
-      ctx.globalAlpha=1}
+/* ============ 外出游历(多天行程) ============ */
+let TRAVEL=null,nextInjury=false,injuryToday=false;
+function tScale(){return 1+TRAVEL.loc.diff*.7}
+function doTravel(key){
+  const loc=LOCATIONS.find(l=>l.key===key);
+  if(!loc||!G||G.level<loc.unlock||bank<loc.cost)return;
+  bank-=loc.cost;
+  (RUN.visited=RUN.visited||{})[key]=1;
+  if(Object.keys(RUN.visited).length>=LOCATIONS.length)unlockAch('globetrot');
+  TRAVEL={loc,startDay:G.level,dayIdx:0,cards:[],shown:0,phase:'reveal',t:0,used:{},got:{money:0,fame:0,dish:0},idle:0};
+  if(G.level>=30&&RUN.lastIncome>0)TRAVEL.idle=Math.round(RUN.lastIncome*rand(.9,1.05)*loc.days);
+  buildTravelDay();
+  state='travel';sfx.door();
+}
+function buildTravelDay(){
+  const loc=TRAVEL.loc,avail=EVENTS.filter(ev=>!TRAVEL.used[ev.id]&&(ev.gen||ev.loc===loc.key));
+  const spec=avail.filter(ev=>ev.loc===loc.key);
+  const pool=avail.slice(),cards=[];
+  const n=ri(2,3);
+  if(spec.length){const sp=spec[ri(0,spec.length-1)];pool.splice(pool.indexOf(sp),1);cards.push(sp)}
+  while(cards.length<n&&pool.length)cards.push(pool.splice(ri(0,pool.length-1),1)[0]);
+  if(!cards.some(c=>c.ch)){const chs=avail.filter(ev=>ev.ch&&!cards.includes(ev));
+    if(chs.length)cards[cards.length-1]=chs[ri(0,chs.length-1)]}
+  for(const c of cards)TRAVEL.used[c.id]=1;
+  TRAVEL.cards=cards.map(ev=>({ev,revealed:false,res:null}));
+  if(TRAVEL.dayIdx===loc.days-1&&TRAVEL.idle>0)
+    TRAVEL.cards.push({ev:{e:'🏪',t:'店里挂机',d:'伙计们在家照常开张(按昨日速度×'+loc.days+'天)',idleCard:1},revealed:false,res:null});
+  TRAVEL.shown=0;TRAVEL.phase='reveal';TRAVEL.t=0;
+}
+function fxApply(fx){
+  const bits=[];
+  if(fx.money){let v=Math.round(fx.money*tScale()+rand(-2,2));
+    if(v>0){bank+=v;RUN.earn+=v;TRAVEL.got.money+=v;bits.push('+'+v+'两')}
+    else{v=Math.min(bank,-v);if(v>0){bank-=v;TRAVEL.got.money-=v;bits.push('-'+v+'两')}else bits.push('身无分文')}}
+  if(fx.fame){RUN.fame=(RUN.fame||0)+fx.fame;TRAVEL.got.fame+=fx.fame;bits.push('名气+'+fx.fame)}
+  if(fx.dish){const left=NEW_DISH_KEYS.filter(k=>!(RUN.researched||[]).includes(k));
+    if(left.length){const k=left[ri(0,left.length-1)];RUN.researched.push(k);TRAVEL.got.dish++;bits.push('新菜「'+DISHES[k].name+'」')}
+    else{bank+=30;RUN.earn+=30;TRAVEL.got.money+=30;bits.push('+30两(菜谱集齐)')}}
+  if(fx.btip){nextBuffs.tip=1;bits.push('明日小费+15%')}
+  if(fx.bpat){nextBuffs.pat=1;bits.push('明日耐心+20%')}
+  if(fx.brush){nextBuffs.rush=1;bits.push('明日开场客流x2')}
+  if(fx.inj){nextInjury=true;bits.push('受伤: 明日全员速度-15%')}
+  return bits.join(' ');
+}
+function resolveAuto(card){
+  const ev=card.ev;let tot=0;for(const o of ev.auto)tot+=o[0];
+  let r=Math.random()*tot,pick=ev.auto[0][1];
+  for(const o of ev.auto){r-=o[0];if(r<=0){pick=o[1];break}}
+  const s=fxApply(pick);
+  card.res=pick.t+(s?' ['+s+']':'');
+}
+function chChance(opt){
+  const st=partyStats();
+  return clamp(st[opt.stat]/(st[opt.stat]+(TRAVEL.loc.diff+(opt.diff||0))*2),.05,.95);
+}
+function chooseOpt(oi){
+  if(!TRAVEL||TRAVEL.phase!=='choose')return;
+  const card=TRAVEL.cards[TRAVEL.shown-1];
+  if(!card||!card.ev.ch||card.res)return;
+  const opt=card.ev.ch[oi],st=partyStats();
+  if(opt.pay!=null){
+    const v=Math.min(bank,Math.round(opt.pay*tScale()));bank-=v;TRAVEL.got.money-=v;
+    const extra=opt.dish?' '+fxApply({dish:1}):'';
+    card.res=(opt.res||'破财免灾')+(v>0?' [-'+v+'两'+extra+']':' (好说歹说没花钱)');
+  }else if(opt.skip){card.res=opt.res||'绕道而行'}
+  else{
+    const p=chChance(opt),who=opt.stat==='wu'?st.wuName:opt.stat==='wen'?st.wenName:'李大嘴';
+    const win=Math.random()<p,out=win?opt.win:opt.lose;
+    const s=fxApply(out);
+    card.res=(win?'✅ ':'❌ ')+who+(win?'出手得胜! ':'落败… ')+out.t+(s?' ['+s+']':'');
+    (win?sfx.coin:sfx.angry)();
   }
-  panel(180,150,600,390,'');
-  emo('🏮',W/2,210,46);
-  txt('通 关 !',W/2,272,46,'#ffd873','center',F_KAI,true);
-  txt('二十天经营, 同福客栈名扬七侠镇!',W/2,330,20,'#ffe9b0');
-  txt('二十天总营业额: '+RUN.earn+' 两    生气离店: '+RUN.angry+' 位',W/2,370,17,'#e8c98a');
-  txt(RUN.angry===0?'🎉 完美服务! 江湖第一好口碑!':RUN.angry<8?'口碑不错, 回头客越来越多~':'下次让客人少生点气哟~',W/2,402,16,'#c9a36a');
-  drawBtn(195,450,145,50,'再来一局',true,null,'playagain');
-  drawBtn(365,450,190,50,'♾ 无尽模式',true,null,'endless');
-  drawBtn(580,450,145,50,'回到标题',true,null,'totitle2');
+  TRAVEL.phase='reveal';TRAVEL.t=0;sfx.click();
+}
+function updTravel(dt){
+  if(!TRAVEL)return;
+  if(TRAVEL.phase==='reveal'){
+    TRAVEL.t+=dt;
+    const next=TRAVEL.cards[TRAVEL.shown];
+    if(next){
+      if(TRAVEL.t>=.9){
+        TRAVEL.shown++;next.revealed=true;TRAVEL.t=0;sfx.click();
+        if(next.ev.ch)TRAVEL.phase='choose';
+        else if(!next.res){
+          if(next.ev.idleCard)next.res='+'+TRAVEL.idle+' 两 (回店时入账)';
+          else resolveAuto(next);
+        }
+      }
+    }else if(TRAVEL.t>=.7)TRAVEL.phase=TRAVEL.dayIdx>=TRAVEL.loc.days-1?'done':'dayend';
+  }
+}
+function nextTravelDay(){TRAVEL.dayIdx++;buildTravelDay()}
+function endTravel(){
+  if(TRAVEL.idle>0){bank+=TRAVEL.idle;RUN.earn+=TRAVEL.idle}
+  G.level=TRAVEL.startDay+TRAVEL.loc.days-1;
+  TRAVEL=null;state='town';sfx.gong();
+}
+function drawMap(){
+  drawBackdrop(false);
+  ctx.fillStyle='rgba(10,6,2,.5)';ctx.fillRect(0,0,W,H);
+  panel(110,20,740,616,'🗺️ 外出游历 · 行万里路');
+  const st=partyStats();
+  txt('⚔️ 武力 '+st.wu+' ('+st.wuName+')    📖 文采 '+st.wen+' ('+st.wenName+')    🍳 厨艺 '+st.chu+' (李大嘴)',480,62,14,'#ffd873','center',F_KAI,true);
+  txt('文比武比全看店员本事 —— 商铺里雇人与特训能大幅提升胜率',480,84,11.5,'#c9a36a');
+  LOCATIONS.forEach((loc,i)=>{
+    const y=104+i*57,unlocked=G.level>=loc.unlock,afford=bank>=loc.cost;
+    ctx.fillStyle=unlocked?'rgba(30,16,6,.7)':'rgba(20,12,6,.45)';rr(130,y,656,49,10);ctx.fill();
+    ctx.strokeStyle=unlocked?'rgba(216,178,90,.5)':'rgba(90,80,60,.3)';ctx.lineWidth=1.5;rr(130,y,656,49,10);ctx.stroke();
+    emo(loc.emoji,163,y+24,23);
+    txt(loc.name,196,y+14,14.5,unlocked?'#ffe9c8':'#8a7a66','left',F_KAI,true);
+    txt(loc.desc,196,y+34,11,unlocked?'#c9a36a':'#6e6252','left');
+    txt('⏱'+loc.days+'天',430,y+16,12,'#e8c98a','left');
+    txt('盘缠 '+loc.cost+' 两',430,y+34,11,'#c9a36a','left');
+    txt('难度 '+'★'.repeat(Math.min(loc.diff,5)),522,y+24,12,'#ffb347','left');
+    if(!unlocked)txt('经营≥'+loc.unlock+'天解锁',760,y+24,12,'#8a7a66','right',F_KAI,true);
+    else if(!afford)txt('盘缠不足',760,y+24,12,'#c98a6a','right',F_KAI,true);
+    else drawBtn(700,y+8,74,33,'出发',true,null,'go_'+loc.key);
+  });
+  const idle=G.level>=30&&RUN.lastIncome>0;
+  txt(idle?'♾ 挂机: 游历期间店里每日约 +'+RUN.lastIncome+' 两':'♾ 第30天解锁挂机: 游历时店里照常经营',480,514,13,'#ffd873');
+  drawBtn(390,548,180,44,'返 回',true,null,'mapback');
   for(const b of frameBtns){
-    if(b.id==='playagain')b.cb=()=>newGame();
-    if(b.id==='endless')b.cb=()=>startLevel(21);
-    if(b.id==='totitle2')b.cb=()=>{state='title'};
+    if(b.id&&b.id.indexOf('go_')===0)b.cb=()=>doTravel(b.id.slice(3));
+    else if(b.id==='mapback')b.cb=()=>{state='intro'};
+  }
+}
+function drawTravel(){
+  drawBackdrop(false);
+  ctx.fillStyle='rgba(10,6,2,.5)';ctx.fillRect(0,0,W,H);
+  const TR=TRAVEL,loc=TR.loc;
+  panel(150,24,660,632,'');
+  txt(loc.emoji+' 游历·'+loc.name,W/2,52,24,'#ffd873','center',F_KAI,true);
+  txt('第'+TR.startDay+'~'+(TR.startDay+loc.days-1)+'天 · 今日第 '+(TR.dayIdx+1)+'/'+loc.days+' 天',W/2,78,13,'#c9a36a');
+  // 乡道与奔马
+  ctx.fillStyle='#4a3a26';ctx.fillRect(190,94,580,40);
+  ctx.fillStyle='#5e4a2e';ctx.fillRect(190,94,580,6);
+  ctx.strokeStyle='rgba(255,235,190,.35)';ctx.lineWidth=3;ctx.setLineDash([16,12]);
+  ctx.lineDashOffset=-T*60;line(190,116,770,116);ctx.setLineDash([]);
+  const mx=200+((T*95)%560);
+  emo('🐎',mx,86,22);emo('🌳',752-((T*30)%560),140,20);
+  // 事件卡
+  for(let i=0;i<TR.shown;i++){
+    const c=TR.cards[i],cy=142+i*66,pend=c.ev.ch&&!c.res;
+    ctx.fillStyle=c.ev.idleCard?'rgba(90,60,8,.85)':pend?'rgba(60,20,8,.8)':'rgba(30,16,6,.7)';
+    rr(190,cy,580,58,10);ctx.fill();
+    ctx.strokeStyle=c.ev.idleCard?'rgba(255,216,115,.8)':pend?'rgba(255,120,90,.6)':'rgba(216,178,90,.4)';
+    ctx.lineWidth=1.5;rr(190,cy,580,58,10);ctx.stroke();
+    emo(c.ev.e,222,cy+29,24);
+    txt(c.ev.t,256,cy+14,14,'#ffe9c8','left',F_KAI,true);
+    txt(c.ev.d,256,cy+32,11,'#c9a36a','left');
+    if(pend)txt('请选择应对 ↓',736,cy+42,13,'#ff8f6a','right',F_KAI,true);
+    else if(c.res){
+      const win=!c.res.indexOf('✅');
+      ctx.font='12px '+F_KAI;ctx.textAlign='left';ctx.textBaseline='middle';
+      const s=c.res.length>46?c.res.slice(0,45)+'…':c.res;
+      ctx.lineWidth=3;ctx.strokeStyle='rgba(20,10,4,.8)';
+      ctx.strokeText(s,256,cy+47);
+      ctx.fillStyle=win?'#9fe3af':c.res.indexOf('❌')===0?'#ff9f8a':'#ffd873';
+      ctx.fillText(s,256,cy+47);
+    }
+  }
+  // 挑战选项
+  if(TR.phase==='choose'){
+    const card=TR.cards[TR.shown-1],opts=card.ev.ch;
+    const bw=Math.min(200,600/opts.length);
+    let total=opts.length*(bw+10)-10;
+    let x=W/2-total/2;
+    for(let i=0;i<opts.length;i++){
+      const o=opts[i];
+      let lab=o.l;
+      if(o.stat!=null)lab+=' ('+Math.round(chChance(o)*100)+'%)';
+      else if(o.pay!=null)lab+=' (-'+Math.round(o.pay*tScale())+'两)';
+      drawBtn(x,452,bw,40,lab,true,null,'cho_'+i);
+      x+=bw+10;
+    }
+    for(const b of frameBtns)if(b.id&&b.id.indexOf('cho_')===0)b.cb=()=>chooseOpt(+b.id.slice(4));
+  }
+  // 行程小结
+  const g=TR.got;
+  const sum=['💰'+(g.money>=0?'+':'')+g.money+'两','📣名气+'+g.fame];
+  if(g.dish)sum.push('🍳新菜x'+g.dish);
+  if(TR.idle>0)sum.push('🏪挂机+'+TR.idle+'两');
+  txt('本趟收获: '+sum.join(' · '),W/2,522,13,'#ffd873','center',F_KAI,true);
+  if(TR.phase==='dayend')drawBtn(W/2-110,556,220,46,'🐎 次日出发',true,null,'nextdayT');
+  else if(TR.phase==='done')drawBtn(W/2-110,556,220,46,'🏠 打道回府',true,null,'gohome');
+  for(const b of frameBtns){
+    if(b.id==='nextdayT')b.cb=()=>nextTravelDay();
+    else if(b.id==='gohome')b.cb=()=>endTravel();
   }
 }
 function drawPauseOverlay(){
@@ -1844,21 +2144,27 @@ function draw(){
     }
   }
   else if(state==='pass')drawPass();
-  else if(state==='fail')drawFail();
   else if(state==='shop')drawShop();
   else if(state==='town')drawTown();
-  else if(state==='complete')drawComplete();
+  else if(state==='map')drawMap();
+  else if(state==='travel')drawTravel();
   cv.style.cursor=hover?'pointer':'default';
 }
 let last=0;
 function loop(ts){
-  const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  const dt=Math.min(.05,(ts-last)/1000)||0;last=ts;
   update(dt);
   computeHover();
   draw();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+// 后台保活: 页面切走后 rAF 停转, 由定时器按真实流逝时间继续推进, 切换页面不暂停
+setInterval(()=>{
+  if(!document.hidden||!last)return;
+  const now=performance.now(),dt=(now-last)/1000;
+  if(dt>=.2){last=now;update(Math.min(dt,5))}
+},200);
 /* ============ 输入 ============ */
 function toXY(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
 cv.addEventListener('pointermove',e=>{mouse=toXY(e)});
@@ -1869,17 +2175,20 @@ addEventListener('keydown',e=>{
   if(e.key==='f'||e.key==='F'){if(state==='play'){speedMul=speedMul>=5?1:speedMul+1;sfx.click()}}
   if(e.key==='r'||e.key==='R'){if(state==='play'){useRally()}}
 });
-addEventListener('blur',()=>{if(state==='play')paused=true});
 /* 调试/测试接口 */
 window.tf={
   get state(){return state},set state(v){state=v},
   get paused(){return paused},set paused(v){paused=v},
   get speedMul(){return speedMul},set speedMul(v){speedMul=v},
-  G:()=>G,RUN:()=>RUN,
+  G:()=>G,RUN:()=>RUN,bank:()=>bank,upg:()=>upg,TV:()=>TRAVEL,
+  inj:()=>injuryToday?1:0,nextInj:()=>nextInjury?1:0,
   setUpg(k,v){if(upg)upg[k]=v},setBank(v){bank=v},
   spawn(){if(G&&state==='play')spawnCust()},
   endNow(){if(G){G.timeLeft=Math.min(G.timeLeft,1)}},
-  jump(n){resetRun();RUN={earn:0,angry:0,researched:[],town:{panned:false,bought:[],panResult:null}};startLevel(Math.max(1,Math.min(21,n)));if(n>=21){state='play';G.t=0}},
+  travel(){if(G&&(state==='intro'||state==='play'))state='map'},
+  go(key){doTravel(key)},
+  restart(){if(G)startLevel(G.level)},
+  jump(n){resetRun();RUN={earn:0,angry:0,researched:[],fame:0,lastIncome:0};startLevel(Math.max(1,Math.min(99,n)))},
   step(n,dt){for(let i=0;i<n;i++)update(dt||1/60)},
   redraw(){draw()},
 };
