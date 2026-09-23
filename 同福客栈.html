@@ -137,7 +137,7 @@ function dayCfg(n){
   };
 }
 const SHOP=[
-  {key:'furn',name:'桌椅升级',desc:()=>upg.furn<1?'单人桌→双人桌, 可拼桌':'双人桌→红木雅座: 小费+10% 耐心+15%',max:2,cost:[350,1200],emoji:'🪑'},
+  {key:'furn',name:'红木雅座',desc:'双人桌换红木雅座: 小费+10% 耐心+15%',max:1,cost:[1200],emoji:'🪑'},
   {key:'knife',name:'新菜刀',desc:'做菜速度+15%/级',max:5,cost:[60,150,400,900,1800],emoji:'🔪'},
   {key:'stove',name:'灶台扩建',desc:'灶台+1口/级(最多5口)',max:3,cost:[140,320,700],emoji:'🔥'},
   {key:'shoes',name:'绣花鞋',desc:'移动速度+12%/级',max:5,cost:[60,150,400,900,1800],emoji:'👡'},
@@ -349,7 +349,7 @@ function continueGame(){
 }
 function PSPEED(){return 250*(1+.12*(upg.shoes||0))*(1+.08*(upg.wage||0))*(injuryToday?.85:1)}
 function carryCap(){return 2+(upg.box||0)}
-function PATMUL(){return (1+.15*(upg.deco||0))*((upg.furn||0)>=2?1.15:1)}
+function PATMUL(){return (1+.15*(upg.deco||0))*((upg.furn||0)>=1?1.15:1)}
 function priceOf(k){return DISHES[k].price*(1+.1*(upg.menu||0))*(G&&G.day&&G.day.price?1.15:1)}
 function COOKSPD(){return 1+.15*(upg.knife||0)+((upg.apprentice||0)>0?.15:0)+.10*(upg.atrain||0)}
 function mkRunner(key){
@@ -374,7 +374,7 @@ function startLevel(n){
      hints:{},hintTxt:null,hintT:0,floats:[],parts:[],flies:[],
      rep:{arrive:0,seatT:0,peak:0,dishes:0,orders:0,collected:0,maxCombo:0}};
   const tn=Math.min(TABLE_POS.length,cfg.tables+upg.hall*3);
-  const seats=(upg.furn||0)>0?2:1,fancy=(upg.furn||0)>=2;
+  const seats=2,fancy=(upg.furn||0)>=1;
   for(let i=0;i<tn;i++)G.tables.push({i,x:TABLE_POS[i][0],y:TABLE_POS[i][1],seats,fancy,custs:[],money:0,plates:[]});
   const sn=Math.min(5,cfg.stoves+(upg.stove||0));
   for(let i=0;i<sn;i++)G.stoves.push({i,x:105+i*70,y:140,order:null,prog:0});
@@ -475,18 +475,14 @@ function koThief(byBai){
 /* ============ 街道路人/拉客/小贩 ============ */
 function autoSeat(){
   if(upg.xiaobei<1)return;
-  const acts=[];
-  const P=G.P;if(P.cur)acts.push(P.cur);for(const a of P.queue)acts.push(a);
-  for(const o of G.runners)if(o.cur)acts.push(o.cur);
   for(const c of G.custs){
     if(c.state!=='queue')continue;
-    if(acts.some(a=>a.t==='seat'&&a.cust===c))continue;
     const t=freeTableNear(c)||shareTableNear(c);
     if(!t)break;
-    seatAt(c,t);
+    if(!seatAt(c,t))continue; // 该桌刚好被坐满则试下一位
     if(Math.random()<.3)addFloat(t.x,t.y-60,'小贝: 客官随便坐!','#ffd88a');
-    assignQueueTargets();
   }
+  assignQueueTargets();
 }
 function updWalkers(dt){
   G.walkerT-=dt;
@@ -636,7 +632,7 @@ function shareTableNear(from){let bt=null,bd=1e9;
   for(const t of G.tables){if(t.seats<2||t.custs.length<1||t.custs.length>=t.seats)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
 function seatDX(t){return(t.seats||2)>1?49:40} // 长凳中心: 双人凳外缘±55.5/单人±46.5, 与邻桌间距≥40
 function seatAt(c,t){
-  if(!t)return false;
+  if(!t||t.custs.length>=(t.seats||2))return false;
   const idx=t.custs.length,sdx=seatDX(t);
   c.state='toTable';c.tx=t.x+(idx===0?-sdx:sdx);c.ty=t.y+8;c.table=t;t.custs.push(c);c.patience=1;
   c.face=idx===0?1:-1;c.sitT=0;
@@ -741,7 +737,7 @@ function execAction(a,actor){
     const comboMul=1+.1*Math.min(G.combo-1,10);
     c.pay+=Math.round(priceOf(it.dish)*c.def.pay);
     const fx1=DISHES[it.dish].fx||{};
-    c.tipPool+=Math.round(priceOf(it.dish)*.35*c.patience*c.def.pay*(1+.25*upg.sign)*comboMul*(G.buff.tip>0?2:1)*(G.buff.market>0?1.5:1)*(G.day.tip?1.15:1)*(G.runners.some(rr=>rr.key==='rxc')?1.1:1)*((upg.furn||0)>=2?1.1:1)*(fx1.tipMul||1));
+    c.tipPool+=Math.round(priceOf(it.dish)*.35*c.patience*c.def.pay*(1+.25*upg.sign)*comboMul*(G.buff.tip>0?2:1)*(G.buff.market>0?1.5:1)*(G.day.tip?1.15:1)*(G.runners.some(rr=>rr.key==='rxc')?1.1:1)*((upg.furn||0)>=1?1.1:1)*(fx1.tipMul||1));
     sfx.serve();G.served++;heartParts(c.x,c.y-62);
     addFloat(c.x,c.y-84,d.name+' 来喽~','#9fe3ff');
     if(G.combo>=3)addFloat(c.x,c.y-106,'连击x'+G.combo+' 🔥','#ffb347');
