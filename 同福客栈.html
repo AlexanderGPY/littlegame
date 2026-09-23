@@ -631,9 +631,9 @@ function updKitchen(dt){
 function validSeat(c){return c.state==='queue'}
 function validOrder(c){return c.state==='seated'&&c.phase==='order'}
 function freeTableNear(from){let bt=null,bd=1e9;
-  for(const t of G.tables){if(t.custs.length>0||t.money)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
+  for(const t of G.tables){if(t.custs.length>0)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
 function shareTableNear(from){let bt=null,bd=1e9;
-  for(const t of G.tables){if(t.seats<2||t.custs.length<1||t.custs.length>=t.seats||t.money)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
+  for(const t of G.tables){if(t.seats<2||t.custs.length<1||t.custs.length>=t.seats)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
 function seatDX(t){return(t.seats||2)>1?49:40} // 长凳中心: 双人凳外缘±55.5/单人±46.5, 与邻桌间距≥40
 function seatAt(c,t){
   if(!t)return false;
@@ -900,7 +900,7 @@ function updatePlay(dt){
       const qn=G.custs.filter(c=>c.state==='queue'||c.state==='follow').length;
       if(qn<qCap()){
         spawnCust();
-        const ease=1/(1+Math.min(RUN.fame||0,25)*.02);
+        const ease=1/(1+Math.min((RUN.fame||0)*.02,.75));
         G.spawnT+=rand(G.cfg.spawn[0],G.cfg.spawn[1])*(qn>=qCap()-1?1.6:1)*ease/(1+.12*(upg.hustle||0))*(G.day.flow?.85:1)*((G.rushT||0)>0?.5:1);
       }else{G.spawnT=2;break}
     }
@@ -2130,7 +2130,7 @@ function drawIntro(){
   const seats=G.tables.reduce((a,t)=>a+(t.seats||2),0);
   txt('🪑 客桌×'+G.tables.length+'(共'+seats+'座)   🔥 灶台×'+G.stoves.length,W/2,y,16,'#e8c98a');y+=26;
   txt('👥 今日客人: '+Object.keys(G.cfg.pool).map(k=>CTYPES[k].name).join('、'),W/2,y,13.5,'#e8c98a');y+=26;
-  if(RUN.fame){txt('📣 名气 '+'★'.repeat(Math.min(RUN.fame,10))+' → 客流+'+Math.min(RUN.fame,25)*2+'%',W/2,y,13.5,'#ffd873');y+=24}
+  if(RUN.fame){txt('📣 名气 '+'★'.repeat(Math.min(RUN.fame,10))+' → 客流+'+Math.round(Math.min(RUN.fame*2,75))+'%',W/2,y,13.5,'#ffd873');y+=24}
   txt('⏳ 营业时长: '+Math.round(G.cfg.time/60)+'分钟',W/2,y,13.5,'#c9a36a');y+=24;
   if(injuryToday){txt('🤕 昨日游历受了伤: 今日全员速度-15%',W/2,y,13.5,'#ff9f8a');y+=24}
   y+=6;
