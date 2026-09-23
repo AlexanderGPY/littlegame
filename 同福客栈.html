@@ -179,6 +179,8 @@ const ACH=[
   {key:'pass20',name:'三十而立',desc:'经营满30天, 解锁挂机经营',emoji:'🐲'},
   {key:'gold',name:'手气爆棚',desc:'十八里铺淘金挖到大金矿',emoji:'⛏️'},
   {key:'globetrot',name:'游遍江湖',desc:'游历过全部八个地点',emoji:'🗺️'},
+  {key:'wu_first',name:'初入江湖',desc:'江湖历练通过第1关',emoji:'⚔️'},
+  {key:'wu_ji',name:'哲学的胜利',desc:'江湖历练击败姬无命',emoji:'🧠'},
 ];
 const TABLE_POS=[[130,236],[282,236],[434,236],[586,236],[738,236],[890,236],[130,326],[282,326],[434,326],[586,326],[738,326],[890,326],[130,416],[282,416],[434,416],[586,416],[738,416],[890,416],[130,506],[282,506],[434,506],[586,506],[738,506],[890,506],[130,596],[282,596],[434,596],[586,596],[738,596],[890,596]]; // 6列×5行: 列距152/行距90, 方桌+长凳footprint≤56, 同行最近边缘≥40px, 首行236避开出菜副台
 const DOOR={x:40,y:560};
@@ -1030,6 +1032,7 @@ function update(dt){
     for(let i=0;i<speedMul;i++){if(state!=='play')break;updatePlay(dt)}
     ambient(dt);
   }else if(state==='travel')updTravel(dt);
+  else if(state==='wu')updWu(dt);
 }
 /* ============ 背景绘制 ============ */
 function drawLantern(x,y,swing,scale){
@@ -2185,14 +2188,16 @@ function drawTitle(){
   drawBtn(W/2-130,442,260,54,'开 始 新 经 营',true,null,'newgame');
   drawBtn(W/2-195,512,190,46,'玩 法 说 明',true,null,'tohelp');
   drawBtn(W/2+5,512,190,46,'🏅 成 就',true,null,'toach');
-  if(sv)txt('(每天打烊自动存档, 随时可接着干)',W/2,566,12.5,'rgba(232,201,138,.55)');
-  else if(best>0)txt('最高纪录: 经营到第 '+best+' 天',W/2,566,16,'#e8c98a');
-  txt('经营养成 · 无天数上限 · 每日可外出游历 · 第30天解锁挂机',W/2,596,13.5,'rgba(232,201,138,.6)');
+  drawBtn(W/2-130,568,260,46,'⚔️ 江湖历练 · 闯关RPG',true,null,'towu');
+  if(sv)txt('(每天打烊自动存档 · 江湖历练的装备进度也自动保存)',W/2,626,12.5,'rgba(232,201,138,.55)');
+  else if(best>0)txt('最高纪录: 经营到第 '+best+' 天',W/2,626,16,'#e8c98a');
+  txt('经营客栈 · 无天数上限 · 每日游历 · ⚔️闯关RPG · 装备养成',W/2,648,13.5,'rgba(232,201,138,.6)');
   for(const b of frameBtns){
     if(b.id==='contgame')b.cb=()=>{if(!continueGame())newGame()};
     if(b.id==='newgame')b.cb=()=>newGame();
     else if(b.id==='tohelp')b.cb=()=>{state='help'};
     else if(b.id==='toach')b.cb=()=>{state='ach'};
+    else if(b.id==='towu')b.cb=()=>{enterWu('title')};
   }
 }
 function drawAch(){
@@ -2200,16 +2205,16 @@ function drawAch(){
   const got=achList();
   panel(150,24,660,620,'🏅 成就 ('+got.length+'/'+ACH.length+')');
   for(let i=0;i<ACH.length;i++){
-    const a=ACH[i],cx=i<7?170:490,cy=96+(i<7?i:i-7)*68;
+    const a=ACH[i],cx=i<8?170:490,cy=86+(i<8?i:i-8)*62;
     const ok=got.includes(a.key);
-    ctx.fillStyle=ok?'rgba(60,40,10,.6)':'rgba(30,16,6,.5)';rr(cx,cy,300,60,9);ctx.fill();
-    ctx.strokeStyle=ok?'rgba(255,216,115,.6)':'rgba(120,100,70,.3)';ctx.lineWidth=1.5;rr(cx,cy,300,60,9);ctx.stroke();
+    ctx.fillStyle=ok?'rgba(60,40,10,.6)':'rgba(30,16,6,.5)';rr(cx,cy,300,54,9);ctx.fill();
+    ctx.strokeStyle=ok?'rgba(255,216,115,.6)':'rgba(120,100,70,.3)';ctx.lineWidth=1.5;rr(cx,cy,300,54,9);ctx.stroke();
     ctx.globalAlpha=ok?1:.45;
-    emo(a.emoji,cx+27,cy+30,25);
-    txt(a.name,cx+52,cy+19,15,ok?'#ffd873':'#b8a890','left',F_KAI,true);
-    txt(a.desc,cx+52,cy+43,12,ok?'#d8c3a0':'#8a7a66','left');
+    emo(a.emoji,cx+27,cy+27,23);
+    txt(a.name,cx+52,cy+17,14.5,ok?'#ffd873':'#b8a890','left',F_KAI,true);
+    txt(a.desc,cx+52,cy+40,11.5,ok?'#d8c3a0':'#8a7a66','left');
     ctx.globalAlpha=1;
-    if(ok){star(cx+278,cy+15,8,'#ffd24a')}
+    if(ok){star(cx+278,cy+14,7,'#ffd24a')}
   }
   drawBtn(390,588,180,44,'返 回',true,null,'achback');
   for(const b of frameBtns)if(b.id==='achback')b.cb=()=>{state='title'};
@@ -2452,7 +2457,8 @@ function drawTown(){
   if(RUN.researched.length)bf.push('新菜x'+RUN.researched.length);
   txt(bf.length?'🌙 明日: '+bf.join(' · '):'🌙 今晚可淘金/研发新菜/投资/包席, 为明天铺路',480,568,13.5,'#ffd873');
   drawBtn(240,586,220,44,'🛒 去商铺',true,null,'toshop');
-  drawBtn(500,586,220,44,'🌅 开始第 '+(G.level+1)+' 天',true,null,'nextday2');
+  drawBtn(470,586,180,44,'⚔️ 江湖历练',true,null,'towu_town');
+  drawBtn(662,586,168,44,'🌅 第 '+(G.level+1)+' 天',true,null,'nextday2');
   for(const b of frameBtns){
     if(b.id==='pan')b.cb=()=>{
       if(RUN.town.panned||bank<100)return;
@@ -2463,6 +2469,7 @@ function drawTown(){
       else{bank+=300;RUN.town.panResult='大金矿! 100两翻成300两!';unlockAch('gold')}
       sfx.coin();
     };
+    else if(b.id==='towu_town')b.cb=()=>{enterWu('town')};
     else if(b.id==='hall')b.cb=()=>{
       const c=[400,900,2000][upg.hall];
       if(upg.hall>=3||bank<c)return;
@@ -3045,6 +3052,7 @@ function draw(){
   else if(state==='town')drawTown();
   else if(state==='map')drawMap();
   else if(state==='travel')drawTravel();
+  else if(state==='wu')drawWu();
   cv.style.cursor=hover?'pointer':'default';
 }
 let last=0;
@@ -3066,8 +3074,528 @@ setInterval(()=>{
 function toXY(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
 cv.addEventListener('pointermove',e=>{mouse=toXY(e)});
 cv.addEventListener('pointerdown',e=>{e.preventDefault();ac();const p=toXY(e);mouse=p;onDown(p)});
+/* ============ ⚔️ 江湖历练: 武林闯关RPG ============ */
+const WU_SKILL={
+  dian:{n:'葵花点穴手',cd:3,m:1.2,stun:1,tg:'foe',d:'单体120%+眩晕1回合'},
+  lian:{n:'轻功连环腿',cd:3,m:1.75,tg:'foe',d:'单体175%'},
+  pai:{n:'排山倒海',cd:4,m:1.15,tg:'all',d:'敌方全体115%'},
+  tao:{n:'惊涛掌',cd:3,m:1.7,tg:'foe',d:'单体170%'},
+  zi:{n:'子曾经曰过',cd:3,m:1.0,adown:.35,adn:2,tg:'foe',d:'单体100%+敌攻-35%(2回合)'},
+  sha:{n:'是谁杀了我',cd:5,m:2.0,jwm:3.5,tg:'foe',d:'单体200%·对姬无命×3.5(诛心之理)'},
+  suan:{n:'铁算盘拨拉',cd:4,heal:.24,tg:'team',d:'我方全体回复30%生命'},
+  ma:{n:'秦腔骂阵',cd:3,adown:.30,adn:2,tg:'all',d:'敌全体攻击-30%(2回合)'},
+  tang:{n:'榴莲糖',cd:2,heal:.30,tg:'ally',d:'我方单体回复38%生命'},
+  shuai:{n:'街霸摔炮',cd:3,m:1.5,tg:'foe',d:'单体150%'},
+  jian:{n:'夺命连环剪',cd:3,m:1.65,tg:'foe',d:'单体165%'},
+  zhen:{n:'万针齐发',cd:4,m:.85,tg:'all',d:'敌方全体85%'},
+  suo:{n:'铁链锁拿',cd:3,m:1.1,stun:1,tg:'foe',d:'单体110%+眩晕1回合'},
+  ya:{n:'官威压阵',cd:4,adown:.25,adn:2,tg:'all',d:'敌全体攻击-25%(2回合)'},
+  ge:{n:'隔空点穴',cd:3,m:1.25,stun:1,tg:'foe',d:'单体125%+眩晕1回合'},
+  ye:{n:'摘叶飞花',cd:4,m:2.1,tg:'foe',d:'单体210%'},
+};
+const WU_CHAR={
+  ty:{n:'佟湘玉',e:'🧾',robe:'#c94f70',hp:115,atk:22,def:10,spd:10,sk:['ma','suan'],free:1,d:'掌柜·秦腔骂阵+铁算盘回血'},
+  bb:{n:'白展堂',e:'🕶️',robe:'#7a8ba0',hp:100,atk:31,def:8,spd:17,sk:['dian','lian'],free:1,d:'盗圣·全场最快, 点穴控场'},
+  gf:{n:'郭芙蓉',e:'🌀',robe:'#3f8f5f',hp:125,atk:35,def:9,spd:12,sk:['pai','tao'],free:1,d:'侠二代·排山倒海群体输出'},
+  xc:{n:'吕秀才',e:'📖',robe:'#8a7a5f',hp:90,atk:19,def:8,spd:13,sk:['zi','sha'],free:1,d:'关中大侠·之乎者也杀人诛心'},
+  xb:{n:'莫小贝',e:'🍬',robe:'#d88a3a',hp:95,atk:27,def:7,spd:15,sk:['tang','shuai'],free:1,d:'衡山掌门·一颗榴莲糖救全场'},
+  ws:{n:'祝无双',e:'✂️',robe:'#b06ab0',hp:105,atk:29,def:9,spd:14,sk:['jian','zhen'],need:'wushuang',d:'客栈雇请祝无双后加入'},
+  xy:{n:'邢捕头',e:'🪓',robe:'#5a6b8a',hp:135,atk:24,def:15,spd:8,sk:['suo','ya'],need:'xing',d:'客栈雇请邢捕头后加入'},
+  bs:{n:'白三娘',e:'🌸',robe:'#c0c0d8',hp:105,atk:33,def:10,spd:16,sk:['ge','ye'],needStg:7,d:'通关第8关后加入·老白他娘'},
+};
+const WU_ITEM={
+  w1:{s:'w',t:1,n:'鸡毛掸子',atk:9,pr:300},w2:{s:'w',t:1,n:'李大嘴的菜刀',atk:12,pr:450},
+  w3:{s:'w',t:2,n:'判官笔',atk:20,crit:5,pr:2000},w4:{s:'w',t:2,n:'鬼头刀',atk:26,pr:2600},w5:{s:'w',t:2,n:'镔铁哨棒',atk:23,def:4,pr:2200},
+  w6:{s:'w',t:3,n:'玄铁重剑',atk:52,pr:9000},w7:{s:'w',t:3,n:'打狗棒',atk:44,spd:3,pr:8500},
+  w8:{s:'w',t:4,n:'屠龙菜刀',atk:82,crit:8,pr:42000},
+  a1:{s:'a',t:1,n:'粗布短打',hp:45,pr:250},a2:{s:'a',t:1,n:'蓑衣',hp:38,def:4,pr:300},
+  a3:{s:'a',t:2,n:'铁叶甲',hp:120,def:8,pr:2200},
+  a4:{s:'a',t:3,n:'夜行衣',hp:130,def:10,spd:6,pr:8200},a5:{s:'a',t:3,n:'金丝软甲',hp:280,def:18,pr:8000},
+  a6:{s:'a',t:4,n:'软猬甲',hp:430,def:30,pr:36000},
+  t1:{s:'t',t:1,n:'木簪',spd:2,pr:200},t2:{s:'t',t:1,n:'平安符',hp:30,pr:240},
+  t3:{s:'t',t:3,n:'和田玉佩',hp:160,atk:14,pr:7800},
+  t4:{s:'t',t:4,n:'追风靴',spd:9,pr:28000},t5:{s:'t',t:4,n:'还魂玉',hp:310,atk:18,def:10,pr:40000},
+  t6:{s:'t',t:4,n:'葵花宝典残页',atk:40,spd:4,crit:10,pr:30000},
+};
+const WU_EN={
+  mz:{n:'毛贼',e:'🪶',robe:'#6b6257',hp:70,atk:13,def:4,spd:10},
+  dp:{n:'地痞',e:'🍺',robe:'#7a6a4a',hp:85,atk:15,def:5,spd:9},
+  eb:{n:'恶霸',e:'😤',robe:'#8a4a3a',hp:130,atk:19,def:7,spd:8},
+  ci:{n:'蒙面刺客',e:'🥷',robe:'#4a4a5a',hp:90,atk:22,def:5,spd:15},
+  ysl:{n:'平谷一点红',e:'🌹',robe:'#a03a5a',hp:520,atk:30,def:8,spd:19,dodge:.3,boss:1},
+  hd:{n:'黑店打手',e:'🍖',robe:'#7a5a3a',hp:150,atk:21,def:8,spd:10},
+  lz:{n:'山贼喽啰',e:'👒',robe:'#5f7a5c',hp:110,atk:16,def:5,spd:12},
+  dj:{n:'二当家',e:'🗡️',robe:'#4a6a4a',hp:190,atk:24,def:9,spd:11},
+  sdm:{n:'赛貂蝉',e:'💄',robe:'#c05a9a',hp:650,atk:26,def:9,spd:14,boss:1,charm:.35,poison:.3},
+  ddw:{n:'黑风寨大当家',e:'🐻',robe:'#5a4a6a',hp:260,atk:27,def:11,spd:10},
+  tjf:{n:'通缉犯',e:'⛓️',robe:'#6a5a5a',hp:210,atk:26,def:9,spd:12},
+  sx:{n:'雌煞',e:'🦊',robe:'#b05a5a',hp:330,atk:32,def:10,spd:13,boss:1},
+  xx:{n:'雄煞',e:'🐺',robe:'#5a5ab0',hp:380,atk:35,def:12,spd:11,boss:1},
+  st:{n:'杀手头目',e:'🎯',robe:'#3a5a6a',hp:300,atk:30,def:10,spd:14},
+  mh:{n:'蒙面高手',e:'🎭',robe:'#4a4a6a',hp:240,atk:28,def:9,spd:13},
+  jwm:{n:'姬无命',e:'🌀',robe:'#8a2a2a',hp:1500,atk:40,def:14,spd:17,boss:1,rage:1,counter:.3},
+};
+const WU_STAGE=[
+  {n:'街口毛贼',foes:['mz','mz','mz'],exp:50,gold:150,d:'三个毛贼拦路收钱, 先热热身.'},
+  {n:'地痞收保护费',foes:['dp','dp','eb'],exp:80,gold:250,d:'七侠镇地痞欺行霸市, 替天行道!'},
+  {n:'刺客一点红',foes:['ci','ysl','ci'],exp:150,gold:500,drop:'a1',d:'BOSS 平谷一点红: 杀手榜名人, 身法诡异(30%闪避).'},
+  {n:'黑店打手',foes:['hd','hd','hd','hd'],exp:180,gold:600,drop:'w5',d:'黑店伙计入伙劫道, 四打四!'},
+  {n:'山贼劫道',foes:['lz','lz','dj','dj'],exp:220,gold:800,drop:'w4',d:'十八里铺山贼的二当家们倾巢而出.'},
+  {n:'千门赛貂蝉',foes:['hd','sdm','hd'],exp:300,gold:1200,drop:'a3',d:'BOSS 赛貂蝉: 千术毒香齐飞, 会魅惑我方(眩晕)与下毒.'},
+  {n:'黑风寨大当家',foes:['ddw','lz','lz','lz'],exp:360,gold:1600,drop:'t3',d:'端了黑风寨的老巢!'},
+  {n:'官府通缉犯',foes:['tjf','tjf','tjf','tjf'],exp:420,gold:2000,drop:'w3',d:'帮邢捕头抓人. 通关后白三娘出手相助, 加入队伍!'},
+  {n:'雌雄双煞',foes:['sx','xx'],exp:560,gold:2800,drop:'a4',d:'BOSS双人组: 雌雄双煞, 刀剑合璧, 攻高血厚.'},
+  {n:'夜闯杀手楼',foes:['mh','mh','st','mh'],exp:700,gold:3600,drop:'w7',d:'杀手楼倾巢而出, 一场恶战.'},
+  {n:'姬无命护法',foes:['mh','mh','st','mh'],exp:900,gold:4500,drop:'a5',d:'姬无命的贴身护法, 决战前的最后一关.'},
+  {n:'决战姬无命',foes:['mh','jwm','mh'],exp:1500,gold:8000,drop:'t6',d:'最终BOSS 姬无命: 越战越怒(每回合攻击+5%), 普攻他有30%被反击. 传闻只有秀才的道理能说动他…'},
+  {n:'无尽·心魔',foes:['jwm','mh','st'],exp:1200,gold:6000,endless:1,d:'击败姬无命后心中的心魔, 每通关一次增强22%, 可反复挑战刷顶级装备.'},
+];
+let WU=null;
+function wuUpg(){if(upg)return upg;const s=loadSave();return(s&&s.upg)||{}}
+function wuBank(){return upg?bank:((loadSave()||{}).bank||0)}
+function wuDelta(v){ // v>0 获得, v<0 消耗; 与客栈存档同一钱柜
+  if(upg){bank=Math.max(0,bank+v);return}
+  const s=loadSave();if(!s)return;
+  s.bank=Math.max(0,(s.bank||0)+v);
+  try{localStorage.setItem('tfkz_save',JSON.stringify(s))}catch(e){}
+}
+function loadWu(){try{return JSON.parse(localStorage.getItem('tfkz_wu'))||null}catch(e){return null}}
+function saveWu(){if(!WU)return;try{localStorage.setItem('tfkz_wu',JSON.stringify(WU.d))}catch(e){}}
+function wuUnlocked(k){const c=WU_CHAR[k];if(!c)return false;
+  if(c.free)return true;
+  if(c.need)return(wuUpg()[c.need]||0)>0;
+  if(c.needStg!=null)return WU.d.cl>c.needStg;
+  return false}
+function wuStats(k){const c=WU_CHAR[k],ch=WU.d.chars[k]||(WU.d.chars[k]={lv:1,exp:0,eq:{w:0,a:0,t:0}});
+  const m=1+.07*(ch.lv-1);
+  const s={hp:Math.round(c.hp*m),atk:Math.round(c.atk*m),def:Math.round(c.def*m),spd:Math.round(c.spd*m),crit:5};
+  for(const sl of['w','a','t']){const it=WU_ITEM[ch.eq[sl]||0];if(!it)continue;
+    s.hp+=it.hp||0;s.atk+=it.atk||0;s.def+=it.def||0;s.spd+=it.spd||0;s.crit+=it.crit||0}
+  s.maxHp=s.hp;return s}
+function enterWu(from){
+  const d=loadWu()||{cl:0,end:0,chars:{},inv:[],party:['ty','bb','gf','xc']};
+  d.party=(d.party||[]).filter(k=>WU_CHAR[k]);
+  WU={d,screen:'map',sel:Math.min(d.cl,12),ret:from||'title',bt:null,arm:{sel:'ty',tab:'shop'}};
+  state='wu';sfx.gong();
+}
+function wuUnit(side,key,idx,scale){
+  if(side==='a'){const c=WU_CHAR[key],st=wuStats(key);
+    return{side,key,n:c.n,e:c.e,robe:c.robe,hp:st.maxHp,maxHp:st.maxHp,atk:st.atk,def:st.def,spd:st.spd,crit:st.crit,cds:{},stun:0,adn:0,adv:0,poison:0}}
+  const en=WU_EN[key],sc=scale||1;
+  const hpm=1+.22*(idx||0),atkm=1+.12*(idx||0); // 关卡成长: 越往后血攻越厚, 逼出装备与等级需求
+  return{side,key,n:en.n,e:en.e,robe:en.robe,hp:Math.round(en.hp*sc*hpm),maxHp:Math.round(en.hp*sc*hpm),atk:Math.round(en.atk*sc*atkm),def:Math.round(en.def*sc),spd:en.spd,crit:5,dodge:en.dodge||0,boss:en.boss,charm:en.charm||0,poisonAtk:en.poison||0,rage:en.rage||0,counter:en.counter||0,cds:{},stun:0,adn:0,adv:0,poison:0}}
+function startWuBattle(idx){
+  const st=WU_STAGE[idx],d=WU.d;
+  const scale=st.endless?1+.22*d.end:1;
+  const party=d.party.filter(k=>wuUnlocked(k));
+  if(!party.length)return;
+  WU.bt={idx,foes:st.foes.map(k=>wuUnit('f',k,idx,scale)),allies:party.map(k=>wuUnit('a',k,idx)),
+    order:[],oi:0,phase:'run',timer:.8,auto:true,speed:1,round:0,sel:null,log:'遭遇: '+st.n+'!',plog:'',scale,fx:[]};
+  WU.screen='battle';sfx.gong();
+}
+function wuAlive(list){return list.filter(u=>u.hp>0)}
+function wuNextRound(bt){
+  bt.round++;
+  bt.order=[...wuAlive(bt.allies),...wuAlive(bt.foes)].sort((a,b2)=>(b2.spd+rand(-2,2))-(a.spd+rand(-2,2)));
+  bt.oi=0;
+  for(const f of bt.foes)if(f.rage&&f.hp>0)f.atk=Math.round(f.atk*1.05); // 姬无命: 哲学之怒
+}
+function wuAtkOf(u){return Math.round(u.atk*(u.adn>0?1-u.adv:1))}
+function wuDmg(bt,src,tgt,mult,S){
+  if(tgt.hp<=0)return 0;
+  if(tgt.dodge&&Math.random()<tgt.dodge){bt.fx.push({x:tgt._sx,y:tgt._sy-70,s:'闪避!',col:'#cfe8ff',t:0});return 0}
+  let raw=wuAtkOf(src)*mult*(.85+Math.random()*.3)-tgt.def*.6;
+  if(S&&S.jwm&&tgt.key==='jwm')raw*=S.jwm;
+  let crit=Math.random()*100<src.crit;
+  if(crit)raw*=1.6;
+  const dmg=Math.max(1,Math.round(raw));
+  tgt.hp=Math.max(0,tgt.hp-dmg);
+  bt.fx.push({x:tgt._sx,y:tgt._sy-70,s:'-'+dmg+(crit?'!':''),col:crit?'#ffd24a':'#ff8f86',t:0,big:crit});
+  return dmg}
+function wuExec(bt,u,act){
+  const foes=wuAlive(bt.foes),allies=wuAlive(bt.allies);
+  if(u.side==='f'){
+    const tgt=allies[Math.floor(Math.random()*allies.length)];
+    const dmg=wuDmg(bt,u,tgt,1);
+    bt.plog=bt.log;bt.log=u.n+' 攻击 '+tgt.n+' -'+dmg;
+    if(u.charm&&tgt.hp>0&&Math.random()<u.charm){tgt.stun=1;bt.log+=' (魅惑!)'}
+    if(u.poisonAtk&&tgt.hp>0&&Math.random()<u.poisonAtk){tgt.poison=3;bt.log+=' (中毒!)'}
+    sfx.hit&&sfx.hit();sfx.eat();
+    return}
+  const S=act.sk?WU_SKILL[act.sk]:null;
+  if(!S){
+    const tgt=(act.tgt&&act.tgt.hp>0?act.tgt:foes.slice().sort((a,b2)=>a.hp-b2.hp)[0]);
+    const dmg=wuDmg(bt,u,tgt,1);
+    bt.plog=bt.log;bt.log=u.n+' 攻击 '+tgt.n+' -'+dmg;
+    if(tgt.counter&&tgt.hp>0&&Math.random()<tgt.counter){const c=wuDmg(bt,tgt,u,.8);bt.log+=' | '+tgt.n+'反击 '+u.n+' -'+c}
+    sfx.serve();return}
+  u.cds[act.sk]=S.cd;
+  if(S.heal){
+    if(S.tg==='team'){let tot=0;for(const a of allies){const h=Math.round(a.maxHp*S.heal);a.hp=Math.min(a.maxHp,a.hp+h);tot+=h}
+      bt.plog=bt.log;bt.log=u.n+'·'+S.n+'! 全体回复 '+tot}
+    else{const t=(act.tgt&&act.tgt.hp>0)?act.tgt:allies.slice().sort((a,b2)=>a.hp/a.maxHp-b2.hp/b2.maxHp)[0];
+      const h=Math.round(t.maxHp*S.heal);t.hp=Math.min(t.maxHp,t.hp+h);
+      bt.plog=bt.log;bt.log=u.n+'·'+S.n+' 为 '+t.n+' 回复 '+h}
+    sfx.ready();return}
+  if(S.adown&&!S.m){for(const f of foes){f.adn=S.adn;f.adv=S.adown}
+    bt.plog=bt.log;bt.log=u.n+'·'+S.n+'! 敌方攻击大减';sfx.order();return}
+  const mm=(S.jwm&&act.tgt&&act.tgt.key==='jwm')?S.m*S.jwm:S.m;
+  if(S.tg==='all'){let tot=0;for(const f of foes)tot+=wuDmg(bt,u,f,mm,S);
+    bt.plog=bt.log;bt.log=u.n+'·'+S.n+'! 敌全体 -'+tot;sfx.rally()}
+  else{const tgt=(act.tgt&&act.tgt.hp>0?act.tgt:foes.slice().sort((a,b2)=>a.hp-b2.hp)[0]);
+    const dmg=wuDmg(bt,u,tgt,mm,S);
+    bt.plog=bt.log;bt.log=u.n+'·'+S.n+'! '+tgt.n+' -'+dmg+(S.jwm&&tgt.key==='jwm'?' (道理诛心!)':'');
+    if(S.stun&&tgt.hp>0){tgt.stun=1;bt.log+=' 眩晕!'}
+    if(S.adown&&tgt.hp>0){tgt.adn=S.adn;tgt.adv=S.adown}
+    sfx.serve()}
+}
+function wuAI(bt,u){
+  const ch=WU_CHAR[u.key];
+  const allies=wuAlive(bt.allies),foes=wuAlive(bt.foes);
+  const lowAll=allies.slice().sort((a,b2)=>a.hp/a.maxHp-b2.hp/b2.maxHp);
+  const lowFoe=foes.slice().sort((a,b2)=>a.hp-b2.hp);
+  const boss=foes.find(f=>f.boss);
+  for(const sk of ch.sk){const S=WU_SKILL[sk];
+    if(S.heal&&!u.cds[sk]){
+      const hurt=allies.filter(a=>a.hp<a.maxHp*.62);
+      if(S.tg==='team'&&hurt.length>=2)return{sk,tgt:hurt[0]};
+      if(S.tg==='ally'&&hurt.length)return{sk,tgt:hurt[0]}}
+    if(S.m&&S.adown&&!u.cds[sk])return{sk,tgt:lowFoe[0]}}
+  for(const sk of ch.sk){const S=WU_SKILL[sk];
+    if(S.m&&!u.cds[sk])return{sk,tgt:(S.jwm&&boss)?boss:lowFoe[0]}}
+  return{sk:null,tgt:lowFoe[0]};
+}
+function wuStep(bt){
+  if(bt.phase==='choose')return;
+  if(!wuAlive(bt.foes).length){wuEndBattle(true);return}
+  if(!wuAlive(bt.allies).length){wuEndBattle(false);return}
+  while(bt.oi>=bt.order.length)wuNextRound(bt);
+  const u=bt.order[bt.oi];
+  if(u.hp<=0){bt.oi++;bt.timer=.15;return}
+  for(const k in u.cds)if(u.cds[k]>0)u.cds[k]--;
+  if(u.poison>0){const pd=Math.max(1,Math.round(u.maxHp*.04));u.hp=Math.max(0,u.hp-pd);u.poison--;
+    bt.plog=bt.log;bt.log=u.n+' 中毒 -'+pd;
+    if(u.hp<=0){bt.oi++;bt.timer=.5;wuCheck(bt);return}}
+  if(u.adn>0)u.adn--;
+  if(u.stun>0){u.stun--;bt.plog=bt.log;bt.log=u.n+' 被点住, 动弹不得!';bt.oi++;bt.timer=.6;return}
+  if(u.side==='a'&&!bt.auto){bt.phase='choose';bt.sel=u;bt.timer=999;return}
+  const act=u.side==='a'?wuAI(bt,u):{foe:1};
+  wuExec(bt,u,act);
+  bt.oi++;bt.timer=.55;
+  wuCheck(bt);
+}
+function wuCheck(bt){
+  if(!wuAlive(bt.foes).length){wuEndBattle(true);return true}
+  if(!wuAlive(bt.allies).length){wuEndBattle(false);return true}
+  return false}
+function wuPlayerAct(type,sk){ // 手动战斗按钮
+  const bt=WU.bt;if(!bt||bt.phase!=='choose'||!bt.sel)return;
+  const u=bt.sel,act=type==='atk'?{sk:null,tgt:wuAlive(bt.foes).slice().sort((a,b2)=>a.hp-b2.hp)[0]}:{sk,tgt:null};
+  bt.phase='run';
+  wuExec(bt,u,act);
+  bt.oi++;bt.timer=.55;
+  wuCheck(bt);
+}
+function wuEndBattle(win){
+  const bt=WU.bt;if(!bt)return;
+  bt.phase='over';bt.win=win;
+  const st=WU_STAGE[bt.idx],d=WU.d;
+  bt.rew={exp:0,gold:0,drop:null,lvups:[]};
+  if(win){
+    const first=bt.idx>=d.cl;
+    const exp=st.endless?st.exp+200*d.end:st.exp;
+    const gold=st.endless?st.gold:Math.round(st.gold*(first?1:.5));
+    bt.rew.exp=exp;bt.rew.gold=gold;
+    wuDelta(gold);
+    for(const k in WU_CHAR){
+      if(!wuUnlocked(k))continue;
+      const ch=d.chars[k]||(d.chars[k]={lv:1,exp:0,eq:{w:0,a:0,t:0}});
+      ch.exp+=d.party.includes(k)?exp:Math.round(exp*.4);
+      while(ch.lv<30&&ch.exp>=wuExpNeed(ch.lv)){ch.exp-=wuExpNeed(ch.lv);ch.lv++;bt.rew.lvups.push(WU_CHAR[k].n+' 升到 '+ch.lv+' 级!')}}
+    const owned=i2=>d.inv.includes(i2)||Object.values(d.chars).some(c=>c.eq&&(c.eq.w===i2||c.eq.a===i2||c.eq.t===i2));
+    if(st.drop&&first&&!owned(st.drop)){d.inv.push(st.drop);bt.rew.drop='获得装备: '+WU_ITEM[st.drop].n}
+    if(first&&!st.endless){d.cl=bt.idx+1;
+      if(RUN)RUN.fame=Math.min(99,(RUN.fame||0)+1);
+      if(bt.idx===0)unlockAch('wu_first');
+      if(bt.idx===11){unlockAch('wu_ji');if(RUN)RUN.fame=Math.min(99,RUN.fame+2)}}
+    if(st.endless){d.end++;
+      if(Math.random()<.15){const t4=['w8','a6','t4','t5','t6'].filter(i2=>!owned(i2));
+        if(t4.length){const pick=t4[Math.floor(Math.random()*t4.length)];d.inv.push(pick);bt.rew.drop='意外拾取: '+WU_ITEM[pick].n}}}
+    if(RUN)RUN.earn=(RUN.earn||0)+gold;
+    sfx.coin();
+  }
+  saveWu();
+  WU.screen='result';
+}
+function wuExpNeed(lv){return Math.round(40*Math.pow(lv,1.5))}
+function updWu(dt){
+  if(!WU)return;
+  const bt=WU.bt;
+  if(WU.screen!=='battle'||!bt)return;
+  for(const f of bt.fx)f.t+=dt;
+  bt.fx=bt.fx.filter(f=>f.t<1.1);
+  if(bt.phase==='over')return;
+  bt.timer-=dt*bt.speed;
+  if(bt.timer<=0)wuStep(bt);
+}
+/* ---- 江湖历练: 绘制 ---- */
+function drawWuMan(x,y,u,isSel){
+  const dead=u.hp<=0;
+  ctx.globalAlpha=dead?.35:1;
+  const bob=dead?0:Math.sin(T*3+x*.05)*1.6;
+  softShadow(x,y+26,14,6);
+  const robe=dead?'#555':u.robe;
+  ctx.fillStyle=robe;rr(x-17,y-32+bob,34,44,9);ctx.fill();
+  ctx.strokeStyle='rgba(20,10,5,.45)';ctx.lineWidth=1.5;rr(x-17,y-32+bob,34,44,9);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.14)';rr(x-13,y-28+bob,26,12,6);ctx.fill();
+  ctx.strokeStyle='#3a2a16';ctx.lineWidth=3;line(x-15,y-8+bob,x+15,y-8+bob); // 腰带
+  ell(x,y-42+bob,9.5,10,'#e8c9a0'); // 头
+  ctx.fillStyle=u.side==='f'?'#2a2a34':'#3a2a1a';
+  ctx.beginPath();ctx.arc(x,y-46+bob,9.5,Math.PI,0);ctx.fill(); // 头发
+  emo(u.e,x+23,y-16+bob,17);
+  if(u.boss){star(x-22,y-56+bob,7,'#ffd24a');txt('BOSS',x,y-64+bob,10,'#ffd24a','center',F_KAI,true)}
+  // 血条
+  const bw=52,hpr=Math.max(0,u.hp/u.maxHp);
+  ctx.fillStyle='rgba(20,10,5,.75)';rr(x-bw/2-1,y-60+bob,bw+2,8,4);ctx.fill();
+  ctx.fillStyle=hpr>.5?'#6fce62':hpr>.25?'#e8b84a':'#e05a4a';
+  if(hpr>0){rr(x-bw/2,y-59+bob,bw*hpr,6,3);ctx.fill()}
+  txt(u.n,x,y-68+bob,11.5,'#fff','center',F_KAI,true);
+  if(u.stun>0)emo('💫',x-24,y-70+bob,13);
+  if(u.poison>0)emo('☠️',x+24,y-74+bob,12);
+  if(u.adn>0)emo('⬇️',x-34,y-40+bob,11);
+  if(isSel){ctx.strokeStyle='rgba(255,216,115,'+(.5+.4*Math.sin(T*6))+')';ctx.lineWidth=2.5;
+    ell(x,y-2,30,32,null);ctx.beginPath();ctx.ellipse(x,y-2,30,32,0,0,TAU);ctx.stroke()}
+  ctx.globalAlpha=1;
+}
+function wuTopBar(tab){
+  txt('⚔️ 江湖历练',80,34,24,'#ffd873','left',F_KAI,true);
+  txt('钱柜: '+wuBank()+' 两',880,34,16,'#ffd24a','right',F_KAI,true);
+  const tabs=[['map','关卡图'],['team','队伍'],['armory','武备库']];
+  tabs.forEach((t,i)=>drawBtn(300+i*130,16,120,36,t[1],WU.screen===t[0]||tab===t[0],null,'wu_tab_'+t[0]));
+  drawBtn(700,16,110,36,WU.ret==='town'?'回夜市':'回客栈',true,null,'wu_back');
+  for(const b of frameBtns){
+    if(b.id.indexOf('wu_tab_')===0)b.cb=()=>{WU.screen=b.id.slice(7);WU.bt=null};
+    else if(b.id==='wu_back')b.cb=()=>{saveWu();state=WU.ret;WU=null};
+  }
+}
+function drawWuMap(){
+  drawBackdrop(false);
+  ctx.fillStyle='rgba(10,6,2,.6)';ctx.fillRect(0,0,W,H);
+  wuTopBar();
+  panel(20,58,440,606,'🗺️ 关卡 · 已通关 '+WU.d.cl+' / 12');
+  for(let i=0;i<WU_STAGE.length;i++){
+    const st=WU_STAGE[i],y=112+i*42,open=i<=WU.d.cl,sel=WU.sel===i;
+    ctx.fillStyle=sel?'rgba(120,80,20,.8)':open?'rgba(30,16,6,.6)':'rgba(20,12,6,.4)';
+    rr(36,y,408,36,7);ctx.fill();
+    ctx.strokeStyle=sel?'#ffd873':open?'rgba(216,178,90,.35)':'rgba(120,100,70,.2)';ctx.lineWidth=sel?2:1.5;rr(36,y,408,36,7);ctx.stroke();
+    const tag=i<WU.d.cl?'✅':open?(st.endless?'♻️':'⚔️'):'🔒';
+    emo(tag,54,y+18,15);
+    txt((st.endless?'':(i+1)+'. ')+st.n,74,y+18,14,open?'#ffe9c8':'#8a7a66','left',F_KAI,true);
+    txt('经验'+(st.endless?st.exp+'+200×'+WU.d.end:st.exp)+' · '+st.gold+'两',300,y+18,11,open?'#c9a36a':'#6a5a48','left');
+    frameBtns.push({x:32,y:y-3,w:416,h:42,id:'wu_sel_'+i,cb:()=>{if(WU.d.cl>=i){WU.sel=i;sfx.click()}}});
+  }
+  const st=WU_STAGE[WU.sel],open=WU.sel<=WU.d.cl;
+  panel(476,58,464,606,st.endless?'♾️ 无尽·心魔 (已通'+WU.d.end+'次)':'第 '+(WU.sel+1)+' 关 · '+st.n);
+  txt(st.d,708,120,14,'#e8d5ae');
+  let y=160;
+  txt('敌方阵容:',708,y,14,'#d8b25a','center',F_KAI,true);y+=34;
+  const uniq={};for(const k of st.foes)uniq[k]=(uniq[k]||0)+1;
+  let fx=708-Object.keys(uniq).length*55+55;
+  for(const k in uniq){const en=WU_EN[k];
+    drawWuMan(fx,220,{n:en.n,e:en.e,robe:en.robe,hp:1,maxHp:1,side:'f',boss:en.boss,stun:0,poison:0,adn:0});
+    txt(uniq[k]>1?'×'+uniq[k]:'',fx,244,12,'#c9a36a');
+    fx+=110}
+  y=286;
+  txt('我方出战 ('+WU.d.party.filter(k=>wuUnlocked(k)).length+'/4):',708,y,14,'#9fe3af','center',F_KAI,true);y+=36;
+  let px=708-WU.d.party.length*55+55;
+  for(const k of WU.d.party){if(!wuUnlocked(k))continue;const c=WU_CHAR[k];
+    drawWuMan(px,y+30,{n:c.n+' Lv'+wuLvX(k),e:c.e,robe:c.robe,hp:1,maxHp:1,side:'a',stun:0,poison:0,adn:0});
+    px+=110}
+  y+=96;
+  txt('奖励: 经验'+(st.endless?st.exp+'+'+200*WU.d.end:st.exp)+' · '+(st.endless?st.gold+'两':st.gold+'两(首通)')+(st.drop?' · 首通掉落 '+WU_ITEM[st.drop].n:''),708,y,13,'#ffd8a0');y+=30;
+  txt('自动战斗 · 可随时在武备库强化后再来',708,y,12,'#9a8a6a');
+  drawBtn(638,590,140,50,open?'⚔️ 出 战':'🔒 未解锁',open,null,'wu_go');
+  for(const b of frameBtns)if(b.id==='wu_go')b.cb=()=>{startWuBattle(WU.sel)};
+}
+function wuLvX(k){return(WU.d.chars[k]||{}).lv||1}
+function drawWuTeam(){
+  drawBackdrop(false);
+  ctx.fillStyle='rgba(10,6,2,.6)';ctx.fillRect(0,0,W,H);
+  wuTopBar('team');
+  panel(20,58,920,606,'👥 队伍 · 点击卡片上阵/休息 (最多4人)');
+  const keys=Object.keys(WU_CHAR);
+  for(let i=0;i<keys.length;i++){
+    const k=keys[i],c=WU_CHAR[k],x=48+(i%4)*228,y=112+Math.floor(i/4)*278;
+    const un=wuUnlocked(k),inP=WU.d.party.includes(k);
+    ctx.fillStyle=inP?'rgba(120,80,20,.85)':'rgba(30,16,6,.6)';
+    rr(x,y,212,262,10);ctx.fill();
+    ctx.strokeStyle=inP?'#ffd873':un?'rgba(216,178,90,.35)':'rgba(120,100,70,.25)';ctx.lineWidth=2;rr(x,y,212,262,10);ctx.stroke();
+    ctx.globalAlpha=un?1:.45;
+    drawWuMan(x+106,y+78,{n:'',e:c.e,robe:c.robe,hp:1,maxHp:1,side:'a',stun:0,poison:0,adn:0});
+    const st=wuStats(k);
+    txt(c.n+' Lv'+wuLvX(k),x+106,y+140,17,'#ffe9c8','center',F_KAI,true);
+    txt('血'+st.hp+' 攻'+st.atk+' 防'+st.def+' 速'+st.spd+' 暴'+st.crit+'%',x+106,y+162,12,'#c9a36a');
+    for(let s2=0;s2<c.sk.length;s2++){const S=WU_SKILL[c.sk[s2]];
+      txt('·'+S.n,x+106,y+186+s2*20,12.5,'#ffd8a0');
+      txt(S.d,x+106,y+199+s2*20,10.5,'#9a8a6a')}
+    txt(un?(inP?'✅ 出战中':'点击上阵'):'🔒 '+c.d,x+106,y+246,11.5,un?'#9fe3af':'#8a7a66');
+    ctx.globalAlpha=1;
+    if(inP)emo('⚔️',x+34,y+30,15);
+    frameBtns.push({x:x-4,y:y-4,w:220,h:270,id:'wu_pk_'+k,cb:()=>{
+      if(!wuUnlocked(k))return;
+      const p=WU.d.party;
+      if(p.includes(k)){if(p.length>1)p.splice(p.indexOf(k),1)}
+      else if(p.length<4)p.push(k);
+      else addFloatWu('队伍已满(4人), 先让一位休息');
+      saveWu();sfx.click();
+    }});
+  }
+}
+function addFloatWu(s){if(WU)WU.d._msg=s}
+function wuItemStats(it){const a=[];if(it.atk)a.push('攻+'+it.atk);if(it.def)a.push('防+'+it.def);if(it.hp)a.push('血+'+it.hp);if(it.spd)a.push('速+'+it.spd);if(it.crit)a.push('暴击+'+it.crit+'%');return a.join(' ')}
+function drawWuArmory(){
+  drawBackdrop(false);
+  ctx.fillStyle='rgba(10,6,2,.6)';ctx.fillRect(0,0,W,H);
+  wuTopBar('armory');
+  panel(20,58,920,606,'🛡️ 武备库 · 装备与客栈钱柜通用');
+  const d=WU.d,sel=WU.arm.sel,ch=d.chars[sel]||(d.chars[sel]={lv:1,exp:0,eq:{w:0,a:0,t:0}});
+  const keys=Object.keys(WU_CHAR);
+  for(let i=0;i<keys.length;i++){const k=keys[i];
+    drawBtn(40+i*112,80,104,34,WU_CHAR[k].n,WU_CHAR[k].n?true:false,null,'wu_ac_'+k);
+    if(WU.arm.sel===k){txt('●',92+i*112+52-44,97,12,'#ffd873')}}
+  for(const b of frameBtns)if(b.id.indexOf('wu_ac_')===0)b.cb=()=>{WU.arm.sel=b.id.slice(6);sfx.click()};
+  // 三槽位
+  const slots=[['w','⚔️ 武器'],['a','🧥 护甲'],['t','📿 饰品']];
+  for(let i=0;i<3;i++){const[sl,lab]=slots[i],x=48,y=130;
+    const eq=ch.eq[sl]||0,it=WU_ITEM[eq];
+    ctx.fillStyle='rgba(30,16,6,.7)';rr(x,y,270,64,9);ctx.fill();
+    ctx.strokeStyle=it?'#ffd873':'rgba(216,178,90,.3)';ctx.lineWidth=1.5;rr(x,y,270,64,9);ctx.stroke();
+    txt(lab,x+14,y+32,13,'#d8b25a','left',F_KAI,true);
+    if(it){txt(it.n,x+70,y+24,14,'#ffe9c8','left',F_KAI,true);
+      txt(wuItemStats(it),x+70,y+44,11.5,'#c9a36a','left');
+      frameBtns.push({x:x-3,y:y-3,w:276,h:70,id:'wu_un_'+sl,cb:()=>{if(ch.eq[sl]){d.inv.push(ch.eq[sl]);ch.eq[sl]=0;saveWu();sfx.click()}}});
+      frameBtns.push({x:x+216,y:y+40,w:50,h:22,id:'wu_un2_'+sl,cb:()=>{if(ch.eq[sl]){d.inv.push(ch.eq[sl]);ch.eq[sl]=0;saveWu();sfx.click()}}});
+      txt('卸下»',x+241,y+52,10.5,'#e8a0a0');
+    }else txt('(空)',x+70,y+32,13,'#8a7a66','left');
+  }
+  txt('选中: '+WU_CHAR[sel].n+' Lv'+wuLvX(sel),400,140,14,'#ffe9c8','left',F_KAI,true);
+  txt('装备栏点击卡片本体也可卸下',400,160,11,'#9a8a6a','left');
+  drawBtn(660,130,130,34,WU.arm.tab==='shop'?'武备商店 ●':'武备商店',true,null,'wu_tsh');
+  drawBtn(800,130,130,34,WU.arm.tab==='bag'?'背包物品 ●':'背包物品',true,null,'wu_tbg');
+  for(const b of frameBtns){
+    if(b.id==='wu_tsh')b.cb=()=>{WU.arm.tab='shop';sfx.click()};
+    else if(b.id==='wu_tbg')b.cb=()=>{WU.arm.tab='bag';sfx.click()};
+  }
+  const owned=i2=>d.inv.includes(i2)||Object.values(d.chars).some(c=>c.eq&&(c.eq.w===i2||c.eq.a===i2||c.eq.t===i2));
+  if(WU.arm.tab==='shop'){
+    const ids=Object.keys(WU_ITEM);
+    txt('花钱如流水 · 顶配一身约16万两 (这就是后期银两的去处!)',480,186,12.5,'#ffd8a0','left');
+    for(let i=0;i<ids.length;i++){const id=ids[i],it=WU_ITEM[id],x=48+(i%2)*452,y=206+Math.floor(i/2)*49;
+      ctx.fillStyle='rgba(30,16,6,.6)';rr(x,y,430,42,8);ctx.fill();
+      const tierCol=it.t>=4?'#ffd24a':it.t===3?'#c9a3ff':it.t===2?'#9fd0ff':'#c9b890';
+      txt(['','凡品','良品','名品','神兵'][it.t],x+14,y+21,11,tierCol,'left',F_KAI,true);
+      txt(it.n,x+56,y+14,13.5,owned(id)?'#8a7a66':'#ffe9c8','left',F_KAI,true);
+      txt(wuItemStats(it),x+56,y+32,11,'#c9a36a','left');
+      const afford=wuBank()>=it.pr&&!owned(id);
+      drawBtn(x+330,y+7,88,28,owned(id)?'已拥有':it.pr+'两',afford,null,'wu_buy_'+id);
+      if(!owned(id))for(const b of frameBtns)if(b.id==='wu_buy_'+id)b.cb=()=>{if(wuBank()>=it.pr){wuDelta(-it.pr);d.inv.push(id);saveWu();sfx.coin()}};
+    }
+  }else{
+    txt('背包 '+d.inv.length+' 件 · 点击装备到 '+WU_CHAR[sel].n,480,186,12.5,'#ffd8a0','left');
+    if(!d.inv.length)txt('背包空空 · 去商店买点, 或打赢关卡拿掉落!',480,230,14,'#8a7a66');
+    for(let i=0;i<d.inv.length;i++){const id=d.inv[i],it=WU_ITEM[id],x=48+(i%2)*452,y=206+Math.floor(i/2)*49;
+      ctx.fillStyle='rgba(30,16,6,.6)';rr(x,y,430,42,8);ctx.fill();
+      txt(['','凡品','良品','名品','神兵'][it.t],x+14,y+21,11,'#c9b890','left',F_KAI,true);
+      txt(it.n,x+56,y+14,13.5,'#ffe9c8','left',F_KAI,true);
+      txt(wuItemStats(it),x+56,y+32,11,'#c9a36a','left');
+      drawBtn(x+330,y+7,88,28,'装备',true,null,'wu_eq_'+id);
+      for(const b of frameBtns)if(b.id==='wu_eq_'+id)b.cb=()=>{
+        const old=ch.eq[it.s];if(old)d.inv.push(old);
+        ch.eq[it.s]=id;d.inv.splice(d.inv.indexOf(id),1);
+        saveWu();sfx.serve();
+      };
+    }
+  }
+}
+function drawWuBattle(){
+  const bt=WU.bt,st=WU_STAGE[bt.idx];
+  drawBackdrop(false);
+  ctx.fillStyle='rgba(10,6,2,.45)';ctx.fillRect(0,0,W,H);
+  // 地面对比
+  ctx.fillStyle='rgba(20,12,6,.35)';rr(60,140,840,140,14);ctx.fill();rr(60,380,840,150,14);ctx.fill();
+  txt((st.endless?'♾️ ':'')+'第 '+(bt.idx+1)+' 关 · '+st.n+(st.endless?' ×'+(1+.22*WU.d.end).toFixed(2):''),W/2,34,22,'#ffd873','center',F_KAI,true);
+  txt('回合 '+bt.round,W/2,62,14,'#c9a36a');
+  // 行动顺序条
+  const seq=bt.order.slice(bt.oi,bt.oi+8).filter(u=>u.hp>0);
+  txt('行动顺序:',110,90,11.5,'#9a8a6a','right');
+  seq.forEach((u,i)=>{emo(u.e,140+i*36,90,i===0?20:15);ctx.globalAlpha=1});
+  // 敌我站位
+  const fN=bt.foes.length,aN=bt.allies.length;
+  bt.foes.forEach((u,i)=>{const x=W/2+(i-(fN-1)/2)*150;u._sx=x;u._sy=250;drawWuMan(x,250,u)});
+  bt.allies.forEach((u,i)=>{const x=W/2+(i-(aN-1)/2)*150;u._sx=x;u._sy=480;drawWuMan(x,480,u,bt.phase==='choose'&&bt.sel===u)});
+  // 飘字
+  for(const f of bt.fx){ctx.globalAlpha=Math.max(0,1-f.t/1.1);
+    txt(f.s,f.x,f.y-f.t*26,f.big?20:15,f.col,'center',F_KAI,true);ctx.globalAlpha=1}
+  // 战报
+  txt(bt.log,W/2,352,16,'#ffe9b0','center',F_KAI,true);
+  txt(bt.plog,W/2,374,12,'#9a8a6a','center');
+  // 手动操作按钮
+  if(bt.phase==='choose'&&bt.sel){
+    const u=bt.sel,c=WU_CHAR[u.key];
+    txt('▶ '+u.n+' 行动:',230,600,15,'#ffd873','right',F_KAI,true);
+    drawBtn(250,580,110,42,'普 攻',true,null,'wu_atk');
+    c.sk.forEach((sk,i)=>{const S=WU_SKILL[sk],ok=!u.cds[sk];
+      drawBtn(376+i*186,580,172,42,S.n+(ok?'':' (CD'+u.cds[sk]+')'),ok,null,'wu_sk_'+sk);
+      txt(S.d,462+i*186,634,10.5,'#9a8a6a');
+      if(ok)for(const b of frameBtns)if(b.id==='wu_sk_'+sk)b.cb=()=>wuPlayerAct('sk',sk);
+    });
+    for(const b of frameBtns)if(b.id==='wu_atk')b.cb=()=>wuPlayerAct('atk');
+  }else{
+    txt(bt.phase==='over'?'战斗结束':'自动战斗中…',W/2,600,14,'#9fe3af');
+  }
+  drawBtn(766,580,86,42,bt.auto?'自动:开':'自动:关',true,null,'wu_auto');
+  drawBtn(858,580,86,42,'×'+bt.speed,true,null,'wu_spd');
+  drawBtn(766,632,86,36,'撤退',true,null,'wu_flee');
+  for(const b of frameBtns){
+    if(b.id==='wu_auto')b.cb=()=>{bt.auto=!bt.auto;if(bt.auto&&bt.phase==='choose'){bt.phase='run';bt.timer=.1}sfx.click()};
+    else if(b.id==='wu_spd')b.cb=()=>{bt.speed=bt.speed>=3?1:bt.speed+1;sfx.click()};
+    else if(b.id==='wu_flee')b.cb=()=>{WU.bt=null;WU.screen='map';sfx.click()};
+  }
+}
+function drawWuResult(){
+  const bt=WU.bt;if(!bt)return;
+  drawWuBattle();
+  const win=bt.win,r=bt.rew||{};
+  panel(230,150,500,360,win?'🎉 大获全胜!':'💀 战败…');
+  if(win){
+    txt('经验 +'+r.exp+' · 银两 +'+r.gold,W/2,230,17,'#ffd8a0');
+    if(r.drop)txt('🎁 '+r.drop,W/2,262,15,'#9fe3af','center',F_KAI,true);
+    let y=296;
+    for(const s of(r.lvups||[]).slice(0,6)){txt('⬆ '+s,W/2,y,13.5,'#ffe9b0');y+=24}
+    if(!r.lvups||!r.lvups.length){txt('经验已存入各位侠士 (上阵全份, 替补四成)',W/2,y,12,'#9a8a6a')}
+  }else{
+    txt('胜败乃兵家常事, 大侠请重新来过.',W/2,240,15,'#e8d5ae');
+    txt('提示: 去武备库购置装备 / 提升等级 / 调整队伍再战',W/2,270,13,'#9a8a6a');
+  }
+  drawBtn(300,440,150,48,'再 战',true,null,'wu_again');
+  drawBtn(510,440,150,48,'回地图',true,null,'wu_tomap');
+  for(const b of frameBtns){
+    if(b.id==='wu_again')b.cb=()=>startWuBattle(bt.idx);
+    else if(b.id==='wu_tomap')b.cb=()=>{WU.bt=null;WU.screen='map'};
+  }
+}
+function drawWu(){
+  if(!WU){state='title';return}
+  if(WU.screen==='map')drawWuMap();
+  else if(WU.screen==='team')drawWuTeam();
+  else if(WU.screen==='armory')drawWuArmory();
+  else if(WU.screen==='battle'&&WU.bt)drawWuBattle();
+  else if(WU.screen==='result'&&WU.bt)drawWuResult();
+  else WU.screen='map';
+}
 addEventListener('keydown',e=>{
   if(e.key==='p'||e.key==='P'||e.key==='Escape'){if(state==='play'){paused=!paused;sfx.click()}}
+  if(e.key==='Escape'&&state==='wu'&&WU&&WU.screen!=='battle'&&WU.screen!=='result'){saveWu();state=WU.ret;WU=null}
   if(e.key==='m'||e.key==='M'){muted=!muted;localStorage.setItem('tfkz_mute',muted?'1':'0')}
   if(e.key==='f'||e.key==='F'){if(state==='play'){speedMul=speedMul>=5?1:speedMul+1;sfx.click()}}
   if(e.key==='r'||e.key==='R'){if(state==='play'){useRally()}}
@@ -3093,6 +3621,7 @@ window.tf={
   hasSave(){return !!loadSave()},clearSave(){localStorage.removeItem('tfkz_save')},
   step(n,dt){for(let i=0;i<n;i++)update(dt||1/60)},
   redraw(){draw()},
+  wu:()=>WU,wud:()=>loadWu(),wuEnter(f){enterWu(f)},wuBattle(i){startWuBattle(i)},wuReset(){localStorage.removeItem('tfkz_wu');WU=null},
 };
 </script>
 </body>
