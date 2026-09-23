@@ -326,6 +326,27 @@ function partyStats(){
 function qCap(){let s=0;for(const t of G.tables)s+=t.seats||2;return clamp(4+Math.floor(s/3),4,20)}
 function resetRun(){upg={knife:0,shoes:0,deco:0,sign:0,hustle:0,bai:0,guo:0,wushuang:0,xiaobei:0,xiucai:0,xiaomi:0,box:0,menu:0,gtrain:0,btrain:0,wtrain:0,xtrain:0,ctrain:0,mtrain:0,etrain:0,atrain:0,apprentice:0,wage:0,xing:0,stove:0,hall:0,furn:0};bank=0;nextBuffs={flow:0,price:0,pat:0,tip:0};townOpts=null;nextBanquet=false;nextInjury=false}
 function newGame(){resetRun();RUN={earn:0,angry:0,researched:[],fame:0,lastIncome:0};speedMul=1;startLevel(1)}
+/* ============ 存档 ============ */
+function saveGame(day){
+  try{
+    const s={v:1,day:day||G.level,upg,bank,
+      run:{earn:RUN.earn,angry:RUN.angry,researched:RUN.researched,fame:RUN.fame,lastIncome:RUN.lastIncome},
+      nextBuffs,nextBanquet:!!nextBanquet,nextInjury:!!nextInjury,speedMul};
+    localStorage.setItem('tfkz_save',JSON.stringify(s));
+  }catch(e){}
+}
+function loadSave(){try{return JSON.parse(localStorage.getItem('tfkz_save'))}catch(e){return null}}
+function continueGame(){
+  const s=loadSave();if(!s)return false;
+  resetRun();
+  for(const k in s.upg)upg[k]=s.upg[k];
+  bank=s.bank||0;
+  RUN={earn:s.run.earn||0,angry:s.run.angry||0,researched:s.run.researched||[],fame:s.run.fame||0,lastIncome:s.run.lastIncome||0,town:null};
+  nextBuffs=s.nextBuffs||{flow:0,price:0,pat:0,tip:0};
+  nextBanquet=!!s.nextBanquet;nextInjury=!!s.nextInjury;speedMul=s.speedMul||1;
+  startLevel(s.day||2);
+  return true;
+}
 function PSPEED(){return 250*(1+.12*(upg.shoes||0))*(1+.08*(upg.wage||0))*(injuryToday?.85:1)}
 function carryCap(){return 2+(upg.box||0)}
 function PATMUL(){return (1+.15*(upg.deco||0))*((upg.furn||0)>=2?1.15:1)}
@@ -336,21 +357,22 @@ function mkRunner(key){
   const hx=guo?312:ws?537:xb?762:xc?930:xm?200:ex?454:140,hy=guo?269:ws?269:xb?363:xc?545:xm?650:ex?598:555;
   const base=guo?205*(1+.2*(upg.gtrain||0)):ws?265*(1+.2*(upg.wtrain||0)):xb?285*(1+.2*(upg.xtrain||0)):xc?135*(1+.2*(upg.ctrain||0)):xm?190*(1+.2*(upg.mtrain||0)):ex?240*(1+.2*(upg.etrain||0)):265*(1+.2*(upg.btrain||0));
   return{key,name:guo?'小郭':ws?'无双':xb?'小贝':xc?'秀才':xm?'小米':ex?'邢捕头':'老白',x:hx,y:hy,tx:hx,ty:hy,
-    home:{x:hx,y:hy},cur:null,carrying:[],esc:null,walkT:0,idleT:rand(0,9),face:1,moving:false,pt:null,
+    home:{x:hx,y:hy},cur:null,carrying:[],esc:null,walkT:0,idleT:rand(0,9),face:1,moving:false,pt:null,stats:{seat:0,order:0,pick:0,serve:0,collect:0},
     speed:base*(1+.08*(upg.wage||0))*(injuryToday?.85:1)}
 }
 function startLevel(n){
   const cfg=dayCfg(n);
   G={level:n,cfg,t:0,income:0,timeLeft:cfg.time,closing:false,closeT:0,spawnT:1.0,angry:0,served:0,
      tables:[],custs:[],stoves:[],counter:[],oq:[],runners:[],
-     P:{x:480,y:605,tx:480,ty:605,queue:[],cur:null,carrying:[],esc:null,walkT:0,idleT:0,face:1},
+     P:{x:480,y:605,tx:480,ty:605,queue:[],cur:null,carrying:[],esc:null,walkT:0,idleT:0,face:1,stats:{seat:0,order:0,pick:0,serve:0,collect:0}},
      freeze:0,baiCd:0,baiAnim:-1,shake:0,dazuiSay:0,rally:0,rallyCd:0,rallyFx:-1,rallyPx:480,rallyPy:600,
      combo:0,lastServeT:-99,buff:{tip:0,cook:0,market:0},nextEventT:rand(35,55),eventBanner:null,
      thief:null,thiefT:n>=4?rand(40,80):Infinity,
      walkers:[],walkerT:rand(3,6),
      day:{flow:nextBuffs.flow>0,price:nextBuffs.price>0,pat:nextBuffs.pat>0,tip:nextBuffs.tip>0},
      rushT:nextBuffs.rush>0?60:0,
-     hints:{},hintTxt:null,hintT:0,floats:[],parts:[],flies:[]};
+     hints:{},hintTxt:null,hintT:0,floats:[],parts:[],flies:[],
+     rep:{arrive:0,seatT:0,peak:0,dishes:0,orders:0,collected:0,maxCombo:0}};
   const tn=Math.min(TABLE_POS.length,cfg.tables+upg.hall*3);
   const seats=(upg.furn||0)>0?2:1,fancy=(upg.furn||0)>=2;
   for(let i=0;i<tn;i++)G.tables.push({i,x:TABLE_POS[i][0],y:TABLE_POS[i][1],seats,fancy,custs:[],money:0,plates:[]});
@@ -596,7 +618,7 @@ function updKitchen(dt){
     s.prog+=dt*(G.buff.cook>0?2:1)/need;
     if(s.prog>=1){
       if(G.counter.length<(upg.apprentice>0?12:8)){
-        G.counter.push({dish:s.order.dish,cust:s.order.cust,born:G.t});
+        G.counter.push({dish:s.order.dish,cust:s.order.cust,born:G.t});G.rep.dishes++;
         s.order=null;s.prog=0;sfx.ready();
         if(Math.random()<.55)G.dazuiSay=1.6;
         hint('ready','点击出菜口的菜端起来 (双手能端2盘)');
@@ -668,6 +690,7 @@ function execAction(a,actor){
     if(!t){addFloat(c.x,c.y-80,'没有空桌!','#ffae42');return}
     // 引导式迎宾: 一指入座, 双人桌可拼桌
     seatAt(c,t);
+    if(A.stats)A.stats.seat++;
     addFloat(t.x,t.y-64,'客官这边请~','#ffd27f');
     assignQueueTargets();
     hint('seat','客人想好后会举"!", 到时点击客人下单');
@@ -675,6 +698,7 @@ function execAction(a,actor){
     const c=a.cust;if(!validOrder(c))return;
     c.phase='wait';c.patience=1;
     for(const k of c.order)G.oq.push({dish:k,cust:c});
+    if(A.stats)A.stats.order++;G.rep.orders++;
     sfx.order();
     for(let j=0;j<5;j++)G.parts.push({x:c.x+rand(-7,7),y:c.y-72+rand(-6,6),vx:rand(-22,22),vy:rand(-42,-12),t:0,life:.5,kind:'ink',col:'#4a4038'}); // 记单墨点
     addFloat(c.x,c.y-82,'好嘞, '+DISHES[c.order[0]].name+'~','#ffe9a8');
@@ -696,6 +720,7 @@ function execAction(a,actor){
         }
       }
     for(const it3 of take)A.carrying.push(it3);
+    if(A.stats)A.stats.pick++;
     for(let fi=0;fi<Math.min(take.length,2);fi++)flyDish(cp0.x,cp0.y-8,A.x,A.y-52,take[fi].dish);
     if(take.length>1)addFloat(A.x,A.y-104,'一次端'+take.length+'盘!','#ffd27f');
     sfx.click();
@@ -709,6 +734,8 @@ function execAction(a,actor){
     c.received.push(it.dish);
     flyDish(A.x+A.face*13,A.y-56,c.x,c.y-38,it.dish);
     if(G.t-G.lastServeT<8)G.combo++;else G.combo=1;
+    if(A.stats)A.stats.serve++;
+    if(G.combo>G.rep.maxCombo)G.rep.maxCombo=G.combo;
     G.lastServeT=G.t;
     const comboMul=1+.1*Math.min(G.combo-1,10);
     c.pay+=Math.round(priceOf(it.dish)*c.def.pay);
@@ -727,6 +754,7 @@ function execAction(a,actor){
       hint('served','上齐菜客人开吃, 吃完桌上留下银两')}
   }else if(a.t==='collect'){
     const t=a.t2;if(!(t.money>0))return;
+    if(A.stats)A.stats.collect++;G.rep.collected++;
     G.income+=t.money;
     if(G.income>=300)unlockAch('endless200');
     addFloat(t.x,t.y-64,'+'+t.money+'两','#ffd24a',22);sfx.coin();coinParts(t.x,t.y-28);
@@ -874,6 +902,10 @@ function updatePlay(dt){
     if(G.custs.length===0||G.closeT>18)return endLevel();
   }
   updKitchen(dt);
+  { // 在座率采样
+    let n=0;for(const t of G.tables)n+=t.custs.length;
+    G.rep.seatT+=n*dt;if(n>G.rep.peak)G.rep.peak=n;
+  }
   autoSeat();
   for(const c of G.custs)updCust(c,dt);
   G.custs=G.custs.filter(c=>!c.dead);
@@ -893,6 +925,7 @@ function endLevel(){
   if(G.level>=7)unlockAch('pass6');
   if(G.level>=30)unlockAch('pass20');
   if(G.level>best){best=G.level;localStorage.setItem('tfkz_best',String(best))}
+  saveGame(G.level+1);
   state='pass';sfx.gong();
 }
 function update(dt){
@@ -1994,6 +2027,7 @@ function panel(x,y,w,h,title){
 }
 /* ============ 各界面 ============ */
 function drawTitle(){
+  const sv=loadSave();
   drawBackdrop(false);
   ctx.fillStyle='rgba(15,8,3,.5)';ctx.fillRect(0,0,W,H);
   // 大匾
@@ -2006,12 +2040,15 @@ function drawTitle(){
   txt('—— 七侠镇 · 武林外传客栈经营养成 ——',W/2,306,22,'#ffe9b0');
   drawLantern(W/2-330,140,Math.sin(T*1.2)*.08,1.5);
   drawLantern(W/2+330,140,Math.sin(T*1.4+1)*.08,1.5);
-  drawBtn(W/2-130,382,260,58,'开 始 经 营',true,null,'newgame');
-  drawBtn(W/2-195,458,190,48,'玩 法 说 明',true,null,'tohelp');
-  drawBtn(W/2+5,458,190,48,'🏅 成 就',true,null,'toach');
-  if(best>0)txt('最高纪录: 经营到第 '+best+' 天',W/2,536,17,'#e8c98a');
+  if(sv)drawBtn(W/2-130,346,260,52,'📂 继续经营 (第'+((sv.day||1)+1)+'天)',true,null,'contgame');
+  drawBtn(W/2-130,412,260,56,'开 始 新 经 营',true,null,'newgame');
+  drawBtn(W/2-195,482,190,48,'玩 法 说 明',true,null,'tohelp');
+  drawBtn(W/2+5,482,190,48,'🏅 成 就',true,null,'toach');
+  if(sv)txt('(每天打烊自动存档)',W/2,536,12,'rgba(232,201,138,.55)');
+  else if(best>0)txt('最高纪录: 经营到第 '+best+' 天',W/2,536,17,'#e8c98a');
   txt('经营养成 · 无天数上限 · 每日可外出游历 · 第30天解锁挂机',W/2,566,14,'rgba(232,201,138,.6)');
   for(const b of frameBtns){
+    if(b.id==='contgame')b.cb=()=>{if(!continueGame())newGame()};
     if(b.id==='newgame')b.cb=()=>newGame();
     else if(b.id==='tohelp')b.cb=()=>{state='help'};
     else if(b.id==='toach')b.cb=()=>{state='ach'};
@@ -2045,6 +2082,7 @@ function drawHelp(){
     ['3️⃣','客人吃完桌上留银两, 点击收钱; 连续上菜有连击加成'],
     ['🪑','商铺里人人可升级: 桌椅 单人→双人→雅座, 灶台/菜刀/菜单皆可升'],
     ['🌅','每天清早二选一: 开张经营 或 外出游历(第10天解锁: 赚外快·学新菜·涨名气)'],
+    ['📂','每天打烊自动存档, 标题页可继续经营; 打烊后可查看经营日报'],
     ['♾','第30天解锁挂机: 外出游历时, 店里按昨日收入照常赚钱'],
     ['⚠️','客人耐心耗尽会生气离店; 第4天起有小偷, 连点3下抓住!'],
     ['📣','店外大街: "?"路人可招揽进店, 💎贵客点大单, 小推车买增益'],
@@ -2086,6 +2124,62 @@ function drawPlaySceneBg(){drawBackdrop(true);
   const ents=[];for(const t of G.tables)ents.push({y:t.y+26,d:()=>drawTable(t)});
   for(const r of G.runners)ents.push({y:r.y,d:()=>drawRunner(r)});
   ents.push({y:G.P.y,d:()=>drawTong()});ents.sort((a,b)=>a.y-b.y);for(const e of ents)e.d()}
+function drawReport(){
+  drawPlaySceneBg();
+  const r=G.rep,seats=G.tables.reduce((a,t)=>a+(t.seats||1),0);
+  const capMin=seats*G.cfg.time/60;
+  const occ=Math.round(r.seatT/60/Math.max(.1,capMin)*100);
+  panel(130,36,700,600,'📊 第 '+G.level+' 天 · 经营日报');
+  // 核心指标 2x3
+  const K=[[ '💰 今日收入',G.income+' 两'],['👥 接待客人',r.arrive+' 位'],
+    ['🪑 上座率',Math.min(999,occ)+'% (峰值 '+r.peak+'/'+seats+')'],['😠 生气离店',G.angry+' 位'],
+    ['🔥 最高连击','x'+(r.maxCombo||0)],['🍳 厨房出菜',r.dishes+' 盘']];
+  for(let i=0;i<6;i++){
+    const cx=155+(i%3)*222,cy=92+Math.floor(i/3)*56;
+    ctx.fillStyle='rgba(30,16,6,.6)';rr(cx,cy,210,48,8);ctx.fill();
+    ctx.strokeStyle='rgba(216,178,90,.3)';ctx.lineWidth=1.5;rr(cx,cy,210,48,8);ctx.stroke();
+    txt(K[i][0],cx+14,cy+15,12,'#c9a36a','left',F_KAI,true);
+    txt(String(K[i][1]),cx+14,cy+34,14,'#ffe9b0','left',F_KAI,true);
+  }
+  // 员工成绩单
+  txt('— 员工成绩单 —',W/2,224,15,'#ffd873','center',F_KAI,true);
+  const rows=[{name:'佟掌柜(你)',stats:G.P.stats}];
+  for(const rn of G.runners)rows.push({name:rn.name,stats:rn.stats});
+  rows.sort((a,b)=>{
+    const sum=x=>x.stats.seat+x.stats.order+x.stats.pick+x.stats.serve+x.stats.collect;
+    return sum(b)-sum(a)});
+  const by=246;
+  txt('姓名',196,by,11.5,'#c9a36a','left',F_KAI,true);
+  txt('带位',280,by,11.5,'#c9a36a','center',F_KAI,true);
+  txt('点单',340,by,11.5,'#c9a36a','center',F_KAI,true);
+  txt('取菜',400,by,11.5,'#c9a36a','center',F_KAI,true);
+  txt('上菜',460,by,11.5,'#c9a36a','center',F_KAI,true);
+  txt('收钱',520,by,11.5,'#c9a36a','center',F_KAI,true);
+  txt('合计',580,by,11.5,'#c9a36a','center',F_KAI,true);
+  txt('效率之星',660,by,11.5,'#c9a36a','center',F_KAI,true);
+  let y=by+22;
+  const maxSum=rows.reduce((a,x)=>Math.max(a,x.stats.seat+x.stats.order+x.stats.pick+x.stats.serve+x.stats.collect),0)||1;
+  for(let i=0;i<rows.length&&i<9;i++){
+    const st=rows[i].stats,sum=st.seat+st.order+st.pick+st.serve+st.collect;
+    if(i%2===0){ctx.fillStyle='rgba(30,16,6,.4)';rr(180,y-11,500,22,5);ctx.fill()}
+    txt(rows[i].name,196,y,12.5,i===0?'#ffd873':'#ffe9c8','left',F_KAI,true);
+    txt(String(st.seat),280,y,12,'#d8c3a0','center');
+    txt(String(st.order),340,y,12,'#d8c3a0','center');
+    txt(String(st.pick),400,y,12,'#d8c3a0','center');
+    txt(String(st.serve),460,y,12,'#d8c3a0','center');
+    txt(String(st.collect),520,y,12,'#d8c3a0','center');
+    txt(String(sum),580,y,13,'#ffe9b0','center',F_KAI,true);
+    // 合计条
+    ctx.fillStyle='rgba(255,210,74,.65)';rr(618,y-6,90*sum/maxSum,10,4);ctx.fill();
+    ctx.strokeStyle='rgba(216,178,90,.4)';ctx.lineWidth=1;rr(618,y-6,90,10,4);ctx.stroke();
+    if(i===0)emo('👑',660,y,13);
+    y+=24;
+  }
+  const cmt=occ>=70?'额滴神呀! 座无虚席, 客似云来!':occ>=45?'生意兴隆, 大堂热热闹闹~':occ>=25?'客流平稳, 还能再红火些!':'今天有点冷清, 明天加把劲!';
+  txt(cmt,W/2,Math.min(y+8,560),14,'#ffd873');
+  drawBtn(390,572,180,44,'返 回',true,null,'repback');
+  for(const b of frameBtns)if(b.id==='repback')b.cb=()=>{state='pass'};
+}
 function drawPass(){
   drawPlaySceneBg();
   const prev=RUN.prevIncome||0;
@@ -2097,11 +2191,13 @@ function drawPass(){
   txt('今日收入 '+G.income+' 两'+(prev?' (昨日 '+prev+' 两)':''),W/2,334,19,'#ffe9b0');
   txt('服务 '+G.served+' 份 · 生气 '+G.angry+' 位 · 累计 '+RUN.earn+' 两',W/2,364,15,'#e8c98a');
   txt('钱柜 '+bank+' 两'+(RUN.fame?' · 名气 ★x'+RUN.fame:''),W/2,392,15,'#c9a36a');
-  txt(G.level===29?'明天就是第30天, 挂机经营即将解锁!':G.level>=30?'出门游历时, 店里可按昨日收入挂机~':stars>=3?'额滴神呀! 生意越来越红火!':'明天继续加油!',W/2,422,15,'#ffd873');
+  txt(G.level===29?'明天就是第30天, 挂机经营即将解锁!':G.level>=30?'出门游历时, 店里可按昨日收入挂机~':stars>=3?'额滴神呀! 生意越来越红火!':'明天继续加油!',W/2,420,15,'#ffd873');
+  drawBtn(340,436,280,30,'📊 查看经营日报',true,null,'toreport');
   drawBtn(268,470,200,54,'🛒 前往商铺',true,null,'passnext');
   drawBtn(492,470,200,54,'🏘️ 镇上夜市',true,null,'passtown');
   for(const b of frameBtns){
     if(b.id==='passnext')b.cb=()=>{state='shop'};
+    if(b.id==='toreport')b.cb=()=>{state='report'};
     if(b.id==='passtown')b.cb=()=>{state='town'};
   }
 }
@@ -2352,6 +2448,7 @@ function endTravel(){
   if(TRAVEL.idle>0){bank+=TRAVEL.idle;RUN.earn+=TRAVEL.idle}
   G.level=TRAVEL.startDay+TRAVEL.loc.days-1;
   TRAVEL=null;state='town';sfx.gong();
+  saveGame(G.level+1);
 }
 function mapIcon(key,x,y){ // 42x36 地点微缩图标(替换地图 emoji)
   const th=TRAVEL_THEMES[key]||TRAVEL_THEMES.qixia;
@@ -2798,6 +2895,7 @@ function draw(){
     }
   }
   else if(state==='pass')drawPass();
+  else if(state==='report')drawReport();
   else if(state==='shop')drawShop();
   else if(state==='town')drawTown();
   else if(state==='map')drawMap();
@@ -2843,6 +2941,8 @@ window.tf={
   go(key){doTravel(key)},
   restart(){if(G)startLevel(G.level)},
   jump(n){resetRun();RUN={earn:0,angry:0,researched:[],fame:0,lastIncome:0};startLevel(Math.max(1,Math.min(99,n)))},
+  cont(){return continueGame()},save(){saveGame()},
+  hasSave(){return !!loadSave()},clearSave(){localStorage.removeItem('tfkz_save')},
   step(n,dt){for(let i=0;i<n;i++)update(dt||1/60)},
   redraw(){draw()},
 };
