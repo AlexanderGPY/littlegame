@@ -1725,6 +1725,29 @@ function drawStool(x,y,fancy){ // 长板凳(南北向长条): y=座位基线t.y+
   line(x-4,cy-10,x+4,cy-10);line(x-4.5,cy+1,x+4.5,cy+1);
   if(fancy){ctx.strokeStyle='#ffd873';ctx.lineWidth=1.4;rr(x-5.6,cy-20,11.2,30,3.4);ctx.stroke()}
 }
+function drawReserved(c){ // 在途客人(toTable)的目标座位摆"预留茶壶": 门口人潮=正在入座而非干等, 空座一眼可辨是否已被占
+  const x=c.tx,y=c.ty-5,pul=.5+.5*Math.sin(T*6+c.tx*.13);
+  ell(x,y,20,13,'rgba(50,30,10,.22)');
+  ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(255,216,120,'+(.5+.35*pul)+')';ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.ellipse(x,y,20,13,0,0,TAU);ctx.stroke();ctx.setLineDash([]);
+  // 小茶壶: 壶身/盖/嘴/柄 (1.4x放大保证辨识度)
+  ctx.save();ctx.translate(x,y);ctx.scale(1.4,1.4);ctx.translate(-x,-y);
+  ctx.fillStyle='#9a6432';rr(x-6.5,y-8,13,8.5,4);ctx.fill();
+  ctx.strokeStyle='#4a2c10';ctx.lineWidth=1.2;rr(x-6.5,y-8,13,8.5,4);ctx.stroke();
+  ctx.fillStyle='#6d4420';rr(x-3.5,y-11,7,3,1.5);ctx.fill();
+  ctx.fillStyle='#6d4420';ctx.beginPath();ctx.moveTo(x+6.5,y-6);ctx.lineTo(x+11.5,y-8);ctx.lineTo(x+6.5,y-3.4);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#6d4420';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x-8.5,y-4,3.2,Math.PI*.5,Math.PI*1.5);ctx.stroke();
+  ctx.restore();
+  // 热气两缕(升起渐隐)
+  for(let k=0;k<2;k++){const ph=(T*10+k*5)%10,fx=x-2+k*5;
+    ctx.strokeStyle='rgba(255,242,214,'+(0.75-ph*.075)+')';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(fx,y-13);ctx.quadraticCurveTo(fx+2.6,y-16-ph*.5,fx,y-19-ph);ctx.stroke()}
+  // "客"字小木牌: 一眼读懂"这座有人"
+  const bob=Math.sin(T*4+c.tx*.1)*1.5;
+  ctx.fillStyle='#6d4420';rr(x-7.5,y-40+bob,15,12,3);ctx.fill();
+  ctx.strokeStyle='#d8b25a';ctx.lineWidth=1.2;rr(x-7.5,y-40+bob,15,12,3);ctx.stroke();
+  txt('客',x,y-31.5+bob,9.5,'#ffe9b0');
+}
 function drawTable(t){
   const isHov=hover&&hover.kind==='table'&&hover.ref===t;
   const seats=t.seats||2,fancy=t.fancy;
@@ -1964,6 +1987,7 @@ function drawPlayScene(){
   drawCounterDishes();
   // 凳椅画在最底层, 人物坐在其上
   for(const t of G.tables)for(let i=0;i<(t.seats||2);i++)drawStool(t.x+(i===0?-1:1)*seatDX(t),t.y+8,t.fancy);
+  for(const t of G.tables)for(const c of t.custs)if(c.state==='toTable')drawReserved(c);
   const ents=[];
   for(const t of G.tables)ents.push({y:t.y+26,d:()=>drawTable(t)});
   for(const c of G.custs)if(c.state!=='seated')ents.push({y:c.y,d:()=>drawCust(c)});
