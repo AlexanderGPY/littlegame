@@ -631,11 +631,17 @@ function freeTableNear(from){let bt=null,bd=1e9;
 function shareTableNear(from){let bt=null,bd=1e9;
   for(const t of G.tables){if(t.seats<2||t.custs.length<1||t.custs.length>=t.seats)continue;const d=dist(from.x,from.y,t.x,t.y);if(d<bd){bd=d;bt=t}}return bt}
 function seatDX(t){return(t.seats||2)>1?49:40} // 长凳中心: 双人凳外缘±55.5/单人±46.5, 与邻桌间距≥40
+function freeSlotOf(t){ // 按槽位(0=左,1=右)找空座: 左侧客人先走时, 拼桌新客必须补左位, 而不是按人数叠到右侧
+  const n=t.seats||2;
+  for(let i=0;i<n;i++){if(!t.custs.some(cc=>cc.slot===i))return i}
+  return -1}
 function seatAt(c,t){
-  if(!t||t.custs.length>=(t.seats||2))return false;
-  const idx=t.custs.length,sdx=seatDX(t);
-  c.state='toTable';c.tx=t.x+(idx===0?-sdx:sdx);c.ty=t.y+8;c.table=t;t.custs.push(c);c.patience=1;
-  c.face=idx===0?1:-1;c.sitT=0;
+  if(!t)return false;
+  const slot=freeSlotOf(t);
+  if(slot<0)return false;
+  const sdx=seatDX(t);
+  c.state='toTable';c.tx=t.x+(slot===0?-sdx:sdx);c.ty=t.y+8;c.table=t;t.custs.push(c);c.patience=1;
+  c.face=slot===0?1:-1;c.sitT=0;c.slot=slot;
   return true}
 function actionTarget(a){const P=G.P;
   if(a.t==='seat')return{x:a.cust.x,y:a.cust.y+8};
