@@ -503,7 +503,7 @@ function updWalkers(dt){
   for(const w of G.walkers){walk(w,dt,w.spd);if(w.x<=-50)w.dead=true}
   G.walkers=G.walkers.filter(w=>!w.dead);
 }
-function lure(w,silent){
+function lure(w,silent,who){
   if(G.closing){if(!silent)addFloat(w.x,w.y-80,'打烊啦, 明天再来~','#ffae42');return}
   const qn=G.custs.filter(c=>c.state==='queue'||c.state==='follow').length;
   if(qn>=qCap()){if(!silent)addFloat(w.x,w.y-80,'店里坐不下了!','#ffae42');return}
@@ -517,6 +517,7 @@ function lure(w,silent){
   }
   spawnCust(key);
   w.dead=true;sfx.door();
+  if(who&&who.stats)who.stats.seat++;
   if(!silent)addFloat(w.x,w.y-90,'客官里边请~','#ffd27f');
   if(w.type==='rich'&&!silent)addFloat(w.x,w.y-112,'贵客驾到!','#ffd24a');
   try{const n=+(localStorage.getItem('tfkz_lure')||0)+1;
@@ -798,7 +799,7 @@ function updRunner(r,dt){
     if(best&&best.x<940){
       r.tx=best.x+24;r.ty=best.y;
       walk(r,dt,r.speed*((G.rally||0)>0?1.5:1));
-      if(dist(r.x,r.y,best.x,best.y)<36)lure(best,true);
+      if(dist(r.x,r.y,best.x,best.y)<36)lure(best,true,r);
     }else{
       if(!r.pt||walk(r,dt,r.speed*.55))r.pt={x:rand(150,850),y:650},r.tx=r.pt.x,r.ty=r.pt.y;
     }
@@ -2037,16 +2038,16 @@ function drawTitle(){
   ctx.strokeStyle='#ffd873';ctx.lineWidth=4;rr(-242,-52,484,104,9);ctx.stroke();
   txt('同 福 客 栈',0,2,84,'#ffd873','center',F_KAI,true);
   ctx.restore();
-  txt('—— 七侠镇 · 武林外传客栈经营养成 ——',W/2,306,22,'#ffe9b0');
+  txt('—— 七侠镇 · 武林外传客栈经营养成 ——',W/2,352,20,'#ffe9b0');
   drawLantern(W/2-330,140,Math.sin(T*1.2)*.08,1.5);
   drawLantern(W/2+330,140,Math.sin(T*1.4+1)*.08,1.5);
-  if(sv)drawBtn(W/2-130,346,260,52,'📂 继续经营 (第'+((sv.day||1)+1)+'天)',true,null,'contgame');
-  drawBtn(W/2-130,412,260,56,'开 始 新 经 营',true,null,'newgame');
-  drawBtn(W/2-195,482,190,48,'玩 法 说 明',true,null,'tohelp');
-  drawBtn(W/2+5,482,190,48,'🏅 成 就',true,null,'toach');
-  if(sv)txt('(每天打烊自动存档)',W/2,536,12,'rgba(232,201,138,.55)');
-  else if(best>0)txt('最高纪录: 经营到第 '+best+' 天',W/2,536,17,'#e8c98a');
-  txt('经营养成 · 无天数上限 · 每日可外出游历 · 第30天解锁挂机',W/2,566,14,'rgba(232,201,138,.6)');
+  if(sv)drawBtn(W/2-130,378,260,50,'📂 继续经营 (第'+(sv.day||2)+'天)',true,null,'contgame');
+  drawBtn(W/2-130,442,260,54,'开 始 新 经 营',true,null,'newgame');
+  drawBtn(W/2-195,512,190,46,'玩 法 说 明',true,null,'tohelp');
+  drawBtn(W/2+5,512,190,46,'🏅 成 就',true,null,'toach');
+  if(sv)txt('(每天打烊自动存档, 随时可接着干)',W/2,566,12.5,'rgba(232,201,138,.55)');
+  else if(best>0)txt('最高纪录: 经营到第 '+best+' 天',W/2,566,16,'#e8c98a');
+  txt('经营养成 · 无天数上限 · 每日可外出游历 · 第30天解锁挂机',W/2,596,13.5,'rgba(232,201,138,.6)');
   for(const b of frameBtns){
     if(b.id==='contgame')b.cb=()=>{if(!continueGame())newGame()};
     if(b.id==='newgame')b.cb=()=>newGame();
@@ -2871,7 +2872,7 @@ function onDown(p){
       if(dist(p.x,p.y,w.x,w.y-32)<40){
         if(w.type==='vendor')buyVendor(w);
         else if(w.type==='pass')addFloat(w.x,w.y-76,'只是路过~','#bbb');
-        else lure(w);
+        else lure(w,false,G.P);
         return;
       }
     }
