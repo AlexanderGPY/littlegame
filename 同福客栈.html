@@ -779,17 +779,25 @@ function claimedTask(r,task){
   for(const o of G.runners)if(o!==r&&o.cur)acts.push(o.cur);
   return acts.some(a=>a.t===task.t&&(a.cust===task.cust||a.it===task.it||a.t2===task.t2));
 }
-function pickTask(r){
-  for(const t of G.tables)if(t.money>0){const k={t:'collect',t2:t};if(!claimedTask(r,k))return k}
-  for(const it of r.carrying){const c=it.cust;
-    if(c&&c.state==='seated'&&c.phase==='wait'){const k={t:'serve',cust:c};if(!claimedTask(r,k))return k}}
+function pickTask(r){ // 就近认领: 优先级不变(收钱>上菜>端菜>下单>带位), 同类活挑离自己最近的; 旧版按数组顺序常横穿全场
+  const near=cs=>{let bk=null,bd=1e9;
+    for(const k of cs){if(claimedTask(r,k))continue;
+      const p=k.t==='pick'?counterPos(Math.max(0,G.counter.indexOf(k.it))):(k.cust||k.t2);
+      const d=dist(r.x,r.y,p.x,p.y);if(d<bd){bd=d;bk=k}}
+    return bk};
+  const csA=[];for(const t of G.tables)if(t.money>0)csA.push({t:'collect',t2:t});
+  let k=near(csA);if(k)return k;
+  const csB=[];for(const it of r.carrying){const c=it.cust;
+    if(c&&c.state==='seated'&&c.phase==='wait')csB.push({t:'serve',cust:c})}
+  k=near(csB);if(k)return k;
   if(r.carrying.length<runnerCap(r)){
-    for(const it of G.counter){const c=it.cust;
-      if(c&&c.state==='seated'&&c.phase==='wait'){const k={t:'pick',it};if(!claimedTask(r,k))return k}}}
-  for(const c of G.custs)if(c.state==='seated'&&c.phase==='order'){
-    const k={t:'order',cust:c};if(!claimedTask(r,k))return k}
-  for(const c of G.custs)if(c.state==='queue'&&freeTableNear(c)){
-    const k={t:'seat',cust:c,step:0};if(!claimedTask(r,k))return k}
+    const csC=[];for(const it of G.counter){const c=it.cust;
+      if(c&&c.state==='seated'&&c.phase==='wait')csC.push({t:'pick',it})}
+    k=near(csC);if(k)return k}
+  const csD=[];for(const c of G.custs)if(c.state==='seated'&&c.phase==='order')csD.push({t:'order',cust:c});
+  k=near(csD);if(k)return k;
+  const csE=[];for(const c of G.custs)if(c.state==='queue'&&freeTableNear(c))csE.push({t:'seat',cust:c,step:0});
+  k=near(csE);if(k)return k;
   return null;
 }
 function updRunner(r,dt){
@@ -809,9 +817,8 @@ function updRunner(r,dt){
   }
   if(!r.cur){
     r.cur=pickTask(r);
-    if(!r.cur){ // 没活儿: 回待机点
-      if(dist(r.x,r.y,r.home.x,r.home.y)>6){r.tx=r.home.x;r.ty=r.home.y;walk(r,dt,r.speed)}
-      else r.moving=false;
+    if(!r.cur){ // 驻场待命: 在原地等下一单, 不再空跑回固定待机点(省下横穿全场的来回)
+      r.moving=false;
       return;
     }
   }
