@@ -185,7 +185,7 @@ const DOOR={x:40,y:560};
 function qpos(i){const c=Math.floor(i/7),r=i%7;return{x:86+c*62,y:550-r*46}} // 3列×7位, 支持排队上限20
 function counterPos(i){return i<8?{x:498+i*62,y:140}:{x:498+(i-8)*62,y:181}}
 /* ============ 全局状态 ============ */
-let autoSkill=true,state='title',paused=false,mouse={x:-1,y:-1},hover=null,frameBtns=[];
+let autoSkill=true,diagOpen=false,state='title',paused=false,mouse={x:-1,y:-1},hover=null,frameBtns=[];
 let speedMul=1;
 let G=null,RUN=null,bank=0,upg=null,best=+(localStorage.getItem('tfkz_best')||0);
 let nextBuffs={flow:0,price:0,pat:0,tip:0},townOpts=null,nextBanquet=false;
@@ -372,6 +372,7 @@ function startLevel(n){
      day:{flow:nextBuffs.flow>0,price:nextBuffs.price>0,pat:nextBuffs.pat>0,tip:nextBuffs.tip>0},
      rushT:nextBuffs.rush>0?60:0,
      hints:{},hintTxt:null,hintT:0,floats:[],parts:[],flies:[],
+     diag:{tS:0,smp:[],qW:[],oW:[],sW:[],ang:[],arr:[],ev:[],flag:{},lastEv:{}},
      rep:{arrive:0,seatT:0,peak:0,dishes:0,orders:0,collected:0,maxCombo:0}};
   const tn=Math.min(TABLE_POS.length,cfg.tables+upg.hall*3);
   const seats=2,fancy=(upg.furn||0)>=1;
@@ -537,9 +538,10 @@ function spawnCust(forceKey){
       order.push(RUN.researched[ri(0,RUN.researched.length-1)]);
     else order.push(pickMenu(def.menu));
   };
-  G.custs.push({def,key,door:0,x:DOOR.x,y:DOOR.y,tx:DOOR.x,ty:DOOR.y,state:'queue',phase:null,patience:1,
+  G.custs.push({def,key,door:0,x:DOOR.x,y:DOOR.y,tx:DOOR.x,ty:DOOR.y,state:'queue',phase:null,patience:1,bornT:G.t,
     walkT:0,idleT:rand(0,9),face:1,moving:false,order,pending:order.slice(),received:[],
     pay:0,tipPool:0,table:null,decideT:0,eatT:0,pop:0,dead:false,line:def.line});
+  G.diag.arr.push({t:G.t});
   sfx.door();hint('spawn','点击排队的客人, 带 TA 入座');
 }
 function assignQueueTargets(){
@@ -557,6 +559,7 @@ function walk(o,dt,spd){const dx=o.tx-o.x,dy=o.ty-o.y,d=Math.hypot(dx,dy);
   if(Math.abs(dx)>1.5)o.face=dx>0?1:-1;return false}
 function custLeave(c,angry){
   if(angry){G.angry++;if(RUN)RUN.angry++;G.combo=0;sfx.angry();G.shake=Math.max(G.shake,7);
+    if(G.diag)G.diag.ang.push({t:G.t});
     if(c.escorter){c.escorter.esc=null;c.escorter=null}
     addFloat(c.x,c.y-86,'💢','#ff5148',24);addFloat(c.x,c.y-108,c.def.name+'生气走了!','#ff8f86');
     G.oq=G.oq.filter(o=>o.cust!==c);
@@ -586,7 +589,7 @@ function updCust(c,dt){
     if(walk(c,dt,c.def.spd*2.3)){c.state='seated';c.phase='deciding';c.decideT=2.2;c.pop=1;c.moving=false}
   }else if(c.state==='seated'){
     c.sitT=Math.min(1,(c.sitT||0)+dt*4);
-    if(c.phase==='deciding'){c.decideT-=dt;if(c.decideT<=0){c.phase='order';c.patience=1;c.pop=1}}
+    if(c.phase==='deciding'){c.decideT-=dt;if(c.decideT<=0){c.phase='order';c.patience=1;c.pop=1;c.orderT=G.t}}
     else if(c.phase==='order'||c.phase==='wait'){
       const fpm=Math.max.apply(null,c.order.map(k=>(DISHES[k].fx&&DISHES[k].fx.patMul)||1));
       if((G.rally||0)>0)c.patience=Math.min(1,c.patience+dt*.04);
@@ -642,6 +645,7 @@ function seatAt(c,t){
   const sdx=seatDX(t);
   c.state='toTable';c.tx=t.x+(slot===0?-sdx:sdx);c.ty=t.y+8;c.table=t;t.custs.push(c);c.patience=1;
   c.face=slot===0?1:-1;c.sitT=0;c.slot=slot;
+  G.diag.qW.push({t:G.t,v:G.t-(c.bornT||G.t)}); // 排队→分到座的耗时
   return true}
 function actionTarget(a){const P=G.P;
   if(a.t==='seat')return{x:a.cust.x,y:a.cust.y+8};
@@ -699,6 +703,7 @@ function execAction(a,actor){
     hint('seat','客人想好后会举"!", 到时点击客人下单');
   }else if(a.t==='order'){
     const c=a.cust;if(!validOrder(c))return;
+    G.diag.oW.push({t:G.t,v:G.t-(c.orderT||G.t)}); // 举单→接单耗时
     c.phase='wait';c.patience=1;
     for(const k of c.order)G.oq.push({dish:k,cust:c});
     if(A.stats)A.stats.order++;G.rep.orders++;
@@ -733,6 +738,7 @@ function execAction(a,actor){
     const idx=A.carrying.findIndex(it=>it.cust===c);
     if(idx<0)return;
     const it=A.carrying.splice(idx,1)[0],d=DISHES[it.dish];
+    G.diag.sW.push({t:G.t,v:G.t-(it.born||G.t)}); // 出锅→上桌耗时(端菜延迟)
     const i2=c.pending.indexOf(it.dish);if(i2>=0)c.pending.splice(i2,1);
     c.received.push(it.dish);
     flyDish(A.x+A.face*13,A.y-56,c.x,c.y-38,it.dish);
@@ -842,6 +848,74 @@ function useBai(){
   addFloat(W/2,300,'葵花点穴手——!','#cfe8ff',30);
   for(const c of G.custs)if(c.state==='seated'||c.state==='queue')addFloat(c.x,c.y-118,'❄','#bfe8ff',20);
 }
+/* ============ 运营诊断: 实时找出卡在哪一环 ============ */
+function updDiag(dt){
+  const D=G.diag;if(!D)return;
+  D.tS+=dt;
+  if(D.tS<.5)return;
+  D.tS=0;
+  let queue=0,walker=0,orderN=0,occ=0,moneyN=0,idle=0,staff=0,cap=0;
+  for(const c of G.custs){
+    if(c.state==='queue')queue++;
+    else if(c.state==='toTable')walker++;
+    else if(c.state==='seated'){occ++;if(c.phase==='order')orderN++}}
+  for(const t of G.tables){cap+=t.seats||2;if(t.money>0)moneyN++}
+  for(const a of [G.P,...G.runners])if(a.key!=='xiaomi'){staff++;if(!a.cur)idle++}
+  D.smp.push({t:G.t,queue,walker,orderN,oq:G.oq.length,ctr:G.counter.length,moneyN,occ,idle,staff,cap});
+  const cut=G.t-60,pr=a=>{while(a.length&&a[0].t<cut)a.shift()};
+  pr(D.smp);pr(D.qW);pr(D.oW);pr(D.sW);pr(D.ang);pr(D.arr);
+  // 边沿触发事件(只在越过阈值时记一条, 回落后重置)
+  const L=D.smp[D.smp.length-1];
+  const ev=(cond,id,msg)=>{if(cond&&!D.flag[id]&&G.t-(D.lastEv[id]||-99)>15){D.flag[id]=1;D.lastEv[id]=G.t;D.ev.push({t:G.t,msg});if(D.ev.length>40)D.ev.shift()}else if(!cond)D.flag[id]=0};
+  ev(L.queue>=6,'q','门口排队 '+L.queue+' 人 — 座位/翻台跟不上');
+  ev(L.orderN>=5,'o',L.orderN+' 位客人举单等接单');
+  ev(L.oq>=6,'k','厨房积压 '+L.oq+' 单 — 灶台不够');
+  ev(L.ctr>=5,'c','出菜口压 '+L.ctr+' 盘 — 端菜慢');
+  ev(L.moneyN>=6,'m',L.moneyN+' 桌钱没收');
+}
+function diagVerdict(){
+  const S=G.diag.smp;
+  if(S.length<8)return{txt:'⏳ 采样中…',col:'#c9c0a8'};
+  const avg=k=>S.reduce((a,b)=>a+b[k],0)/S.length;
+  if(avg('oq')>=5)return{txt:'⚠ 卡点: 灶台产能 — 等灶均值'+avg('oq').toFixed(1)+'单',col:'#ffb35c'};
+  if(avg('queue')>=4)return{txt:'⚠ 卡点: 客流积压 — 排队均值'+avg('queue').toFixed(1)+'人',col:'#ff8f86'};
+  if(avg('orderN')>=4)return{txt:'⚠ 卡点: 接单慢 — 举单均值'+avg('orderN').toFixed(1)+'位',col:'#ffd27f'};
+  if(avg('ctr')>=4)return{txt:'⚠ 卡点: 端菜慢 — 出菜口均值'+avg('ctr').toFixed(1)+'盘',col:'#ffd27f'};
+  return{txt:'✓ 顺畅 — 无明显积压',col:'#9fe3af'};
+}
+function drawDiag(){
+  const D=G.diag,S=D.smp;
+  panel(592,60,352,516,'📊 运营诊断 · L 键开关');
+  if(!S.length)return;
+  const avg=k=>S.reduce((a,b)=>a+b[k],0)/S.length;
+  const mx=k=>Math.max(...S.map(x=>x[k]));
+  const cur=k=>S[S.length-1][k];
+  const avA=a=>a.length?a.reduce((x,y)=>x+y.v,0)/a.length:0;
+  const p95=a=>{if(a.length<3)return 0;const s2=a.map(x=>x.v).sort((x,y)=>x-y);return s2[Math.floor(s2.length*.95)]};
+  const V=diagVerdict();
+  txt(V.txt,768,116,15,V.col,'center',F_KAI,true);
+  let y=144;
+  const row=(a,b)=>{txt(a,612,y,12.5,'#e8d5ae');txt(b,924,y,12.5,'#ffe9b0','right');y+=21};
+  const hd=s=>{txt(s,612,y,13,'#d8b25a','left',F_KAI,true);y+=22};
+  hd('客流');
+  row('排队(现在/均值/峰值)',cur('queue')+' / '+avg('queue').toFixed(1)+' / '+mx('queue'));
+  row('近1分钟: 进店/生气离店',D.arr.length+' 位 / '+D.ang.length+' 位');
+  row('上座',cur('occ')+'/'+cur('cap')+' ('+Math.round(cur('occ')/Math.max(1,cur('cap'))*100)+'%)');
+  hd('带位 → 点单');
+  row('排队到分座',avA(D.qW).toFixed(1)+'s');
+  row('举单等接单(现在/均值)',cur('orderN')+' / '+avg('orderN').toFixed(1));
+  row('接单响应',avA(D.oW).toFixed(1)+'s (p95 '+p95(D.oW).toFixed(1)+')');
+  hd('厨房 → 上桌');
+  row('等灶订单(现在/均值/峰值)',cur('oq')+' / '+avg('oq').toFixed(1)+' / '+mx('oq'));
+  row('出菜口(现在/均值)',cur('ctr')+' / '+avg('ctr').toFixed(1));
+  row('出锅到上桌',avA(D.sW).toFixed(1)+'s (p95 '+p95(D.sW).toFixed(1)+')');
+  hd('其他 / 事件(近1分)');
+  row('待收钱桌·在途·员工空闲',cur('moneyN')+' 桌 · '+cur('walker')+' 人 · '+cur('idle')+'/'+cur('staff'));
+  const mm=t=>{const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+(s<10?'0':'')+s};
+  const evs=D.ev.filter(e=>e.t>G.t-60).slice(-4);
+  if(!evs.length)txt('— 无异常事件 —',768,y,12,'#9a8a6a','center');
+  else for(const e of evs){txt(mm(e.t)+'  '+e.msg,612,y,11.5,'#ffd8a0');y+=19}
+}
 /* ============ 掌柜鼓舞士气 ============ */
 function useRally(){
   if(!G||state!=='play'||paused)return;
@@ -853,7 +927,7 @@ function useRally(){
 }
 /* ============ 主更新 ============ */
 function updatePlay(dt){
-  G.t+=dt;G.shake=Math.max(0,G.shake-dt*14);G.baiCd=Math.max(0,G.baiCd-dt);
+  G.t+=dt;updDiag(dt);G.shake=Math.max(0,G.shake-dt*14);G.baiCd=Math.max(0,G.baiCd-dt);
   G.freeze=Math.max(0,G.freeze-dt);G.hintT=Math.max(0,G.hintT-dt);
   G.rally=Math.max(0,G.rally-dt);G.rallyCd=Math.max(0,G.rallyCd-dt);
   if(autoSkill&&G.t>3){
@@ -1952,6 +2026,16 @@ function drawHUD(){
     if(ready&&Math.sin(T*4)>0){ctx.strokeStyle='rgba(160,210,255,.5)';ctx.lineWidth=2;
       ctx.beginPath();ctx.arc(b.x,b.y,b.r+5,0,TAU);ctx.stroke()}
   }
+  // 运营诊断开关
+  {
+    const b={x:710,y:620,r:22};
+    ctx.fillStyle=diagOpen?'rgba(60,100,140,.95)':'rgba(40,34,26,.9)';
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.fill();
+    ctx.strokeStyle=diagOpen?'#9fd0ff':'#6b5a42';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,TAU);ctx.stroke();
+    emo('📊',b.x,b.y-2,16);
+    txt('诊断',b.x,b.y+34,11,diagOpen?'#9fd0ff':'#8a7a62','center',F_KAI,true);
+  }
   // 自动技能开关
   {
     const b={x:774,y:620,r:26};
@@ -1986,6 +2070,7 @@ function drawHUD(){
     txt(G.hintTxt,W/2,181,15,'#ffe9b0');
     ctx.globalAlpha=1;
   }
+  if(diagOpen)drawDiag();
 }
 function drawIconBtn(x,y,icon){
   ctx.fillStyle='rgba(70,44,20,.95)';rr(x-19,y-16,38,32,8);ctx.fill();
@@ -2913,7 +2998,8 @@ function playClick(p){
 }
 function onDown(p){
   if(state==='play'&&!paused){
-    if(dist(p.x,p.y,774,620)<32){autoSkill=!autoSkill;sfx.click();return}
+      if(dist(p.x,p.y,710,620)<30){diagOpen=!diagOpen;sfx.click();return}
+      if(dist(p.x,p.y,774,620)<32){autoSkill=!autoSkill;sfx.click();return}
     if(dist(p.x,p.y,836,620)<42){useRally();return}
     if(upg.bai>0){const b=baiBtnPos();if(dist(p.x,p.y,b.x,b.y)<b.r+6){useBai();return}}
     if(p.x>=686&&p.x<=742&&p.y>=9&&p.y<=35){speedMul=speedMul>=5?1:speedMul+1;sfx.click();return}
@@ -2986,10 +3072,12 @@ addEventListener('keydown',e=>{
   if(e.key==='f'||e.key==='F'){if(state==='play'){speedMul=speedMul>=5?1:speedMul+1;sfx.click()}}
   if(e.key==='r'||e.key==='R'){if(state==='play'){useRally()}}
   if(e.key==='o'||e.key==='O'){autoSkill=!autoSkill;sfx.click()}
+  if(e.key==='l'||e.key==='L'){if(state==='play'){diagOpen=!diagOpen;sfx.click()}}
 });
 /* 调试/测试接口 */
 window.tf={
   get state(){return state},set state(v){state=v},
+  get diagOpen(){return diagOpen},set diagOpen(v){diagOpen=v},
   get paused(){return paused},set paused(v){paused=v},
   get speedMul(){return speedMul},set speedMul(v){speedMul=v},
   G:()=>G,RUN:()=>RUN,bank:()=>bank,upg:()=>upg,TV:()=>TRAVEL,
