@@ -144,10 +144,10 @@ const SHOP=[
   {key:'deco',name:'重新装修',desc:'客人耐心+15%/级',max:5,cost:[80,200,500,1100,2200],emoji:'🏮'},
   {key:'sign',name:'金字招牌',desc:'小费+25%/级',max:5,cost:[80,200,500,1100,2200],emoji:'✨'},
   {key:'hustle',name:'门前吆喝',desc:'客流+12%/级',max:5,cost:[100,220,500,1100,2400],emoji:'📣'},
-  {key:'box',name:'双层食盒',desc:'所有跑堂多端1盘/级(上限4)',max:2,cost:[150,450],emoji:'🍱'},
+  {key:'box',name:'多层食盒',desc:'全员端菜+1盘/级(初始1盘,满级4盘)',max:3,cost:[150,450,900],emoji:'🍱'},
   {key:'menu',name:'菜单更新',desc:'所有菜价+10%/级',max:5,cost:[120,300,700,1400,2800],emoji:'📜'},
   {key:'wage',name:'薪酬激励',desc:'全员(含掌柜)速度+8%/级',max:5,cost:[400,900,1800,3600,7000],emoji:'💰'},
-  {key:'bai',name:'雇佣白展堂',desc:'自动跑堂·双手2盘+点穴手',max:1,cost:[120],emoji:'🖐️'},
+  {key:'bai',name:'雇佣白展堂',desc:'自动跑堂·最快腿+点穴手',max:1,cost:[120],emoji:'🖐️'},
   {key:'guo',name:'雇佣郭芙蓉',desc:'自动跑堂·单盘·便宜',max:1,cost:[150],emoji:'💪'},
   {key:'wushuang',name:'雇佣祝无双',desc:'自动跑堂·迎宾优先',max:1,cost:[130],emoji:'🌸'},
   {key:'xiaobei',name:'雇佣莫小贝',desc:'有空桌客人直接入座+跑堂',max:1,cost:[220],emoji:'🧒'},
@@ -350,7 +350,7 @@ function continueGame(){
   return true;
 }
 function PSPEED(){return 250*(1+.12*(upg.shoes||0))*(1+.08*(upg.wage||0))*(injuryToday?.85:1)}
-function carryCap(){return 2+(upg.box||0)}
+function carryCap(){return 1+(upg.box||0)}
 function PATMUL(){return (1+.15*(upg.deco||0))*((upg.furn||0)>=1?1.15:1)}
 function priceOf(k){return DISHES[k].price*(1+.1*(upg.menu||0))*(G&&G.day&&G.day.price?1.15:1)}
 function COOKSPD(){return 1+.15*(upg.knife||0)+((upg.apprentice||0)>0?.15:0)+.10*(upg.atrain||0)}
@@ -623,7 +623,7 @@ function updKitchen(dt){
         G.counter.push({dish:s.order.dish,cust:s.order.cust,born:G.t});G.rep.dishes++;
         s.order=null;s.prog=0;sfx.ready();
         if(Math.random()<.55)G.dazuiSay=1.6;
-        hint('ready','点击出菜口的菜端起来 (双手能端2盘)');
+        hint('ready','点击出菜口的菜端起来 (一次能端'+carryCap()+'盘)');
       }else s.prog=1;
     }
   }
@@ -780,7 +780,7 @@ function queueAction(a){
   P.queue.push(a);sfx.click();
 }
 /* ============ AI跑堂(白展堂/郭芙蓉) ============ */
-function runnerCap(r){return (r.key==='guo'||r.key==='wushuang'||r.key==='rxb'||r.key==='rxc'||r.key==='rxing'?1:2)+(upg.box||0)}
+function runnerCap(r){return 1+(upg.box||0)}
 function claimedTask(r,task){
   const acts=[];
   const P=G.P;if(P.cur)acts.push(P.cur);for(const a of P.queue)acts.push(a);
@@ -938,10 +938,17 @@ function updatePlay(dt){
       let n=0;for(const c of G.custs)if(c.state==='seated')n++;
       if(n>=3)useRally();
     }
-    // 自动点穴: 有客人耐心告急(<50%)时
+    // 自动点穴: 座上耐心<70%告急 / 排队耐心<50%告急 / 或3位以上客人同时等单等菜(群控)
     if(upg.bai>0&&G.baiCd<=0){
-      const danger=G.custs.some(c=>c.state==='seated'&&(c.phase==='order'||c.phase==='wait')&&c.patience<.5);
-      if(danger)useBai();
+      let danger=false,press=0;
+      for(const c of G.custs){
+        if(c.state==='queue'&&c.patience<.5)danger=true;
+        else if(c.state==='seated'&&(c.phase==='order'||c.phase==='wait')){
+          press++;
+          if(c.patience<.7)danger=true;
+        }
+      }
+      if(danger||press>=3)useBai();
     }
   }
   if((G.rushT||0)>0)G.rushT-=dt;
@@ -3464,24 +3471,23 @@ function drawWuArmory(){
     drawBtn(40+i*112,80,104,34,WU_CHAR[k].n,WU_CHAR[k].n?true:false,null,'wu_ac_'+k);
     if(WU.arm.sel===k){txt('●',92+i*112+52-44,97,12,'#ffd873')}}
   for(const b of frameBtns)if(b.id.indexOf('wu_ac_')===0)b.cb=()=>{WU.arm.sel=b.id.slice(6);sfx.click()};
-  // 三槽位
+  // 三槽位(横排, 勿叠)
+  txt('当前选中: '+WU_CHAR[sel].n+' Lv'+wuLvX(sel)+' · 点击装备卡片可卸下',480,116,12.5,'#ffe9c8','center',F_KAI,true);
   const slots=[['w','⚔️ 武器'],['a','🧥 护甲'],['t','📿 饰品']];
-  for(let i=0;i<3;i++){const[sl,lab]=slots[i],x=48,y=130;
+  for(let i=0;i<3;i++){const[sl,lab]=slots[i],x=48+i*268,y=126;
     const eq=ch.eq[sl]||0,it=WU_ITEM[eq];
-    ctx.fillStyle='rgba(30,16,6,.7)';rr(x,y,270,64,9);ctx.fill();
-    ctx.strokeStyle=it?'#ffd873':'rgba(216,178,90,.3)';ctx.lineWidth=1.5;rr(x,y,270,64,9);ctx.stroke();
-    txt(lab,x+14,y+32,13,'#d8b25a','left',F_KAI,true);
-    if(it){txt(it.n,x+70,y+24,14,'#ffe9c8','left',F_KAI,true);
-      txt(wuItemStats(it),x+70,y+44,11.5,'#c9a36a','left');
-      frameBtns.push({x:x-3,y:y-3,w:276,h:70,id:'wu_un_'+sl,cb:()=>{if(ch.eq[sl]){d.inv.push(ch.eq[sl]);ch.eq[sl]=0;saveWu();sfx.click()}}});
-      frameBtns.push({x:x+216,y:y+40,w:50,h:22,id:'wu_un2_'+sl,cb:()=>{if(ch.eq[sl]){d.inv.push(ch.eq[sl]);ch.eq[sl]=0;saveWu();sfx.click()}}});
-      txt('卸下»',x+241,y+52,10.5,'#e8a0a0');
-    }else txt('(空)',x+70,y+32,13,'#8a7a66','left');
+    ctx.fillStyle='rgba(30,16,6,.7)';rr(x,y,250,62,9);ctx.fill();
+    ctx.strokeStyle=it?'#ffd873':'rgba(216,178,90,.3)';ctx.lineWidth=1.5;rr(x,y,250,62,9);ctx.stroke();
+    txt(lab,x+12,y+31,12.5,'#d8b25a','left',F_KAI,true);
+    if(it){txt(it.n,x+62,y+22,13,'#ffe9c8','left',F_KAI,true);
+      txt(wuItemStats(it),x+62,y+42,11,'#c9a36a','left');
+      frameBtns.push({x:x-3,y:y-3,w:256,h:68,id:'wu_un_'+sl,cb:()=>{if(ch.eq[sl]){d.inv.push(ch.eq[sl]);ch.eq[sl]=0;saveWu();sfx.click()}}});
+      frameBtns.push({x:x+196,y:y+38,w:50,h:22,id:'wu_un2_'+sl,cb:()=>{if(ch.eq[sl]){d.inv.push(ch.eq[sl]);ch.eq[sl]=0;saveWu();sfx.click()}}});
+      txt('卸下»',x+221,y+48,10.5,'#e8a0a0');
+    }else txt('(空)',x+62,y+31,12.5,'#8a7a66','left');
   }
-  txt('选中: '+WU_CHAR[sel].n+' Lv'+wuLvX(sel),400,140,14,'#ffe9c8','left',F_KAI,true);
-  txt('装备栏点击卡片本体也可卸下',400,160,11,'#9a8a6a','left');
-  drawBtn(660,130,130,34,WU.arm.tab==='shop'?'武备商店 ●':'武备商店',true,null,'wu_tsh');
-  drawBtn(800,130,130,34,WU.arm.tab==='bag'?'背包物品 ●':'背包物品',true,null,'wu_tbg');
+  drawBtn(700,196,112,30,WU.arm.tab==='shop'?'武备商店 ●':'武备商店',true,null,'wu_tsh');
+  drawBtn(818,196,112,30,WU.arm.tab==='bag'?'背包物品 ●':'背包物品',true,null,'wu_tbg');
   for(const b of frameBtns){
     if(b.id==='wu_tsh')b.cb=()=>{WU.arm.tab='shop';sfx.click()};
     else if(b.id==='wu_tbg')b.cb=()=>{WU.arm.tab='bag';sfx.click()};
@@ -3489,26 +3495,26 @@ function drawWuArmory(){
   const owned=i2=>d.inv.includes(i2)||Object.values(d.chars).some(c=>c.eq&&(c.eq.w===i2||c.eq.a===i2||c.eq.t===i2));
   if(WU.arm.tab==='shop'){
     const ids=Object.keys(WU_ITEM);
-    txt('花钱如流水 · 顶配一身约16万两 (这就是后期银两的去处!)',480,186,12.5,'#ffd8a0','left');
-    for(let i=0;i<ids.length;i++){const id=ids[i],it=WU_ITEM[id],x=48+(i%2)*452,y=206+Math.floor(i/2)*49;
-      ctx.fillStyle='rgba(30,16,6,.6)';rr(x,y,430,42,8);ctx.fill();
+    txt('花钱如流水 · 顶配一身约16万两 (这就是后期银两的去处!)',480,182,12,'#ffd8a0','left');
+    for(let i=0;i<ids.length;i++){const id=ids[i],it=WU_ITEM[id],x=48+(i%2)*452,y=222+Math.floor(i/2)*44;
+      ctx.fillStyle='rgba(30,16,6,.6)';rr(x,y,430,38,8);ctx.fill();
       const tierCol=it.t>=4?'#ffd24a':it.t===3?'#c9a3ff':it.t===2?'#9fd0ff':'#c9b890';
-      txt(['','凡品','良品','名品','神兵'][it.t],x+14,y+21,11,tierCol,'left',F_KAI,true);
-      txt(it.n,x+56,y+14,13.5,owned(id)?'#8a7a66':'#ffe9c8','left',F_KAI,true);
-      txt(wuItemStats(it),x+56,y+32,11,'#c9a36a','left');
+      txt(['','凡品','良品','名品','神兵'][it.t],x+14,y+19,10.5,tierCol,'left',F_KAI,true);
+      txt(it.n,x+56,y+13,12.5,owned(id)?'#8a7a66':'#ffe9c8','left',F_KAI,true);
+      txt(wuItemStats(it),x+56,y+29,10.5,'#c9a36a','left');
       const afford=wuBank()>=it.pr&&!owned(id);
-      drawBtn(x+330,y+7,88,28,owned(id)?'已拥有':it.pr+'两',afford,null,'wu_buy_'+id);
+      drawBtn(x+330,y+5,88,27,owned(id)?'已拥有':it.pr+'两',afford,null,'wu_buy_'+id);
       if(!owned(id))for(const b of frameBtns)if(b.id==='wu_buy_'+id)b.cb=()=>{if(wuBank()>=it.pr){wuDelta(-it.pr);d.inv.push(id);saveWu();sfx.coin()}};
     }
   }else{
-    txt('背包 '+d.inv.length+' 件 · 点击装备到 '+WU_CHAR[sel].n,480,186,12.5,'#ffd8a0','left');
-    if(!d.inv.length)txt('背包空空 · 去商店买点, 或打赢关卡拿掉落!',480,230,14,'#8a7a66');
-    for(let i=0;i<d.inv.length;i++){const id=d.inv[i],it=WU_ITEM[id],x=48+(i%2)*452,y=206+Math.floor(i/2)*49;
-      ctx.fillStyle='rgba(30,16,6,.6)';rr(x,y,430,42,8);ctx.fill();
-      txt(['','凡品','良品','名品','神兵'][it.t],x+14,y+21,11,'#c9b890','left',F_KAI,true);
-      txt(it.n,x+56,y+14,13.5,'#ffe9c8','left',F_KAI,true);
-      txt(wuItemStats(it),x+56,y+32,11,'#c9a36a','left');
-      drawBtn(x+330,y+7,88,28,'装备',true,null,'wu_eq_'+id);
+    txt('背包 '+d.inv.length+' 件 · 点击装备到 '+WU_CHAR[sel].n,480,182,12,'#ffd8a0','left');
+    if(!d.inv.length)txt('背包空空 · 去商店买点, 或打赢关卡拿掉落!',480,246,13,'#8a7a66');
+    for(let i=0;i<d.inv.length;i++){const id=d.inv[i],it=WU_ITEM[id],x=48+(i%2)*452,y=222+Math.floor(i/2)*44;
+      ctx.fillStyle='rgba(30,16,6,.6)';rr(x,y,430,38,8);ctx.fill();
+      txt(['','凡品','良品','名品','神兵'][it.t],x+14,y+19,10.5,'#c9b890','left',F_KAI,true);
+      txt(it.n,x+56,y+13,12.5,'#ffe9c8','left',F_KAI,true);
+      txt(wuItemStats(it),x+56,y+29,10.5,'#c9a36a','left');
+      drawBtn(x+330,y+5,88,27,'装备',true,null,'wu_eq_'+id);
       for(const b of frameBtns)if(b.id==='wu_eq_'+id)b.cb=()=>{
         const old=ch.eq[it.s];if(old)d.inv.push(old);
         ch.eq[it.s]=id;d.inv.splice(d.inv.indexOf(id),1);
